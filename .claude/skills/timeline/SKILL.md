@@ -65,6 +65,17 @@ Each file follows this template:
 
 ## Operations
 
+### Pre-flight Check
+
+**Before ANY operation involving date/time, ALWAYS check current system time first.**
+
+1. Check current time
+2. If time is between 00:00-05:00 (late night/early morning):
+   - User saying "今天" might mean yesterday (they haven't slept yet)
+   - User saying "明天" might mean today
+   - **Always confirm** which date they actually mean
+3. Proceed with operation only after date is confirmed
+
 ### Creating Todos
 **Trigger words**: "提醒", "待办", "要做", "创建待办"
 
