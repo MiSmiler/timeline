@@ -81,7 +81,7 @@ bash "$HERMES_HOME/scripts/todo_overdue.sh"
 
 - **触发时机**：创建或修改今天有时间的待办时
 - **命名格式**：`timeline-{YYYYMMDD}-{HHMM}`（如 `timeline-20260612-1500`）
-- **脚本**：`todo_by_time.sh YYYY-MM-DD HH:MM`
+- **脚本**：`todo_by_time.sh`（不传参数，自动用当前时间匹配）
 - **模式**：`no_agent`（脚本直接输出，无 LLM 开销）
 - **推送**：所有已连接渠道（`deliver: "all"`）
 - **行为**：有到期待办则推送，无则静默
@@ -93,7 +93,7 @@ Cron job 创建示例：
   "action": "create",
   "name": "timeline-20260612-1500",
   "schedule": "2026-06-12T15:00:00",
-  "script": "todo_by_time.sh 2026-06-12 15:00",
+  "script": "todo_by_time.sh",
   "no_agent": true,
   "deliver": "all"
 }

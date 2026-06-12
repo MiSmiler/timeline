@@ -2,10 +2,12 @@
 """
 按日期和时间提取 todo，用于定时提醒的 cron job。
 
-用法：python3 todo_by_time.py YYYY-MM-DD HH:MM
+用法：python3 todo_by_time.py [YYYY-MM-DD HH:MM]
 示例：python3 todo_by_time.py 2026-06-12 15:00
 
 行为：
+- 不传参数：使用当前日期和时间（适合 no_agent cron job 直接调用）
+- 传参数：使用指定的日期和时间
 - 读取 timeline/YYYY-MM-DD.md
 - 提取时间匹配 HH:MM 的未完成 todo
 - 有则输出，无则静默（空输出）
@@ -14,6 +16,7 @@
 import os
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 
@@ -79,12 +82,14 @@ def extract_todos_by_time(filepath, target_time):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("用法: python3 todo_by_time.py YYYY-MM-DD HH:MM", file=sys.stderr)
-        sys.exit(1)
-
-    target_date = sys.argv[1]
-    target_time = sys.argv[2]
+    if len(sys.argv) >= 3:
+        target_date = sys.argv[1]
+        target_time = sys.argv[2]
+    else:
+        # 不传参数时使用当前时间（适合 no_agent cron job）
+        now = datetime.now()
+        target_date = now.strftime("%Y-%m-%d")
+        target_time = now.strftime("%H:%M")
 
     # 补零：15:0 -> 15:00，9:5 -> 09:05
     parts = target_time.split(":")

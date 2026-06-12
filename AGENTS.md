@@ -26,6 +26,8 @@
    - 今天有时间的待办 → 创建 cron job（命名：`timeline-{YYYYMMDD}-{HHMM}`）
    - 非今天的待办 → 不创建 cron（由 daily review 负责）
    - 完成/取消待办 → 检查是否需要删除 cron
+   - **One-shot 提醒创建方式**：`cronjob(action='create', schedule='<ISO时间>', script='todo_by_time.sh', no_agent=True, name='timeline-{YYYYMMDD}-{HHMM}')`，脚本自动用当前时间匹配 todo
+   - 同时间多个待办只建一个 cron（脚本会提取该时间所有匹配 todo）
 4. **回复格式**：操作后显示文件名和更新内容
 
 ## 脚本

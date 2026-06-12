@@ -217,9 +217,9 @@ python3 scripts/todo_list.py
 
 ### 按时间提取待办
 ```bash
-python3 scripts/todo_by_time.py YYYY-MM-DD HH:MM
+python3 scripts/todo_by_time.py [YYYY-MM-DD HH:MM]
 ```
-用于 cron job 定时提醒，有则输出，无则静默。
+用于 cron job 定时提醒，有则输出，无则静默。不传参数则使用当前系统时间。
 
 ### 提取过期和无时间待办
 ```bash
