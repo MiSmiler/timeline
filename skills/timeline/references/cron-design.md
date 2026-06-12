@@ -81,3 +81,30 @@
 
 - **daily review skill**：每天早上为当天待办创建 cron job（待实现）
 - **跨天 todo 的 cron**：目前不支持，依赖 daily review
+
+## 决策 7：每小时扫描的时间和范围
+
+**选择**：`58 9-23 * * *`（每天 09:58~23:58）
+
+**Rationale**：
+- 整点前 2 分钟触发，避免与用户自己设置的整点 per-time cron 撞车
+- 9-23 范围推送，深夜不打扰
+- 脚本不传参数，用 `datetime.now()` 取当前时间（:58），行为合理
+
+**被否决的方案**：
+- 整点（XX:00）：与 per-time cron 冲突
+- 整点后（XX:02）：作为迟到提醒，但用户选择提前
+- 每小时全时段：深夜打扰
+
+## 决策 8：cronjob 脚本路径限制
+
+**问题**：cronjob 工具不允许绝对路径，报错 `Script path must be relative to ~/.hermes/scripts/`
+
+**解决方案**：symlink 到 `~/.hermes/scripts/`
+```bash
+mkdir -p ~/.hermes/scripts
+ln -sf /home/hui/notenote/daynote/skills/timeline/scripts/todo_overdue.py ~/.hermes/scripts/todo_overdue.py
+ln -sf /home/hui/notenote/daynote/skills/timeline/scripts/todo_by_time.py ~/.hermes/scripts/todo_by_time.py
+```
+
+**已知问题**：现有 per-time cron job（如 `timeline-20260612-1600`）使用的 `scripts/todo_by_time.py` 路径可能也有同样问题，需排查修复。

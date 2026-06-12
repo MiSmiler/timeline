@@ -237,7 +237,7 @@ python3 scripts/validate.py
 
 ## Cron Job 管理
 
-> 设计决策详见 `references/cron-design.md`
+> 设计决策详见 `references/cron-design.md`，部署指南详见 `references/setup.md`
 
 ### 定时提醒（按 todo 时间）
 - **触发时机**：创建或修改今天有时间的待办时
@@ -248,9 +248,9 @@ python3 scripts/validate.py
 - **行为**：有到期待办则推送，无则静默
 
 ### 每小时扫描
-- **触发频率**：每小时一次
+- **触发频率**：每小时一次，`58 9-23 * * *`（09:58~23:58，避开整点 per-time cron）
 - **命名**：`timeline-hourly`（固定）
-- **脚本**：`scripts/todo_overdue.py`
+- **脚本**：`todo_overdue.py`
 - **模式**：no_agent
 - **推送**：所有已连接渠道
 - **内容**：过期待办（日期已过或时间已过）+ 无时间待办
