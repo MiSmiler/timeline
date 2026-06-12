@@ -235,27 +235,9 @@ python3 scripts/validate.py
 
 ---
 
-## Cron Job 管理
+## Cron 生命周期管理
 
-> 设计决策详见 `references/cron-design.md`，部署指南详见 `references/hermes_setup.md`
-
-### 定时提醒（按 todo 时间）
-- **触发时机**：创建或修改今天有时间的待办时
-- **命名格式**：`timeline-{YYYYMMDD}-{HHMM}`
-- **脚本**：`scripts/todo_by_time.py YYYY-MM-DD HH:MM`
-- **模式**：no_agent（脚本直接输出，无 LLM 开销）
-- **推送**：所有已连接渠道
-- **行为**：有到期待办则推送，无则静默
-
-### 每小时扫描
-- **触发频率**：每小时一次，`58 9-23 * * *`（09:58~23:58，避开整点 per-time cron）
-- **命名**：`timeline-hourly`（固定）
-- **脚本**：`todo_overdue.py`
-- **模式**：no_agent
-- **推送**：所有已连接渠道
-- **内容**：过期待办（日期已过或时间已过）+ 无时间待办
-
-### 生命周期管理
+以下规则控制何时创建/删除 cron job：
 | 操作 | Cron 处理 |
 |------|-----------|
 | 创建今天有时间的待办 | 检查是否已有同名 cron，无则创建 |
