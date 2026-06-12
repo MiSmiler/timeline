@@ -30,7 +30,4 @@
 
 ## 脚本
 
-- `skills/timeline/scripts/todo_list.py` — 列出所有未完成待办
-- `skills/timeline/scripts/todo_by_time.py` — 按日期+时间提取待办
-- `skills/timeline/scripts/todo_overdue.py` — 提取过期+无时间待办
-- `skills/timeline/scripts/validate.py` — 验证日期一致性
+见`skills/timeline/scripts/`

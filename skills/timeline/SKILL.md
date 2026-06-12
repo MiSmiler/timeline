@@ -108,7 +108,7 @@ related_skills: []
 - 如果待办是**今天**的且有时间，创建对应的 cron job
 - 命名格式：`timeline-{YYYYMMDD}-{HHMM}`（如 `timeline-20260612-1500`）
 - 如果该时间已有 cron job（同一天多个待办），不重复创建
-- 使用 `scripts/todo_by_time.py` 作为 cron 的脚本，no_agent 模式运行
+- 使用 `todo_by_time.sh`（wrapper）作为 cron 的脚本，no_agent 模式运行
 
 ### 创建事件
 **触发词**：「约了」「买了」等完成动作的动词
@@ -237,7 +237,7 @@ python3 scripts/validate.py
 
 ## Cron Job 管理
 
-> 设计决策详见 `references/cron-design.md`，部署指南详见 `references/setup.md`
+> 设计决策详见 `references/cron-design.md`，部署指南详见 `references/hermes_setup.md`
 
 ### 定时提醒（按 todo 时间）
 - **触发时机**：创建或修改今天有时间的待办时
