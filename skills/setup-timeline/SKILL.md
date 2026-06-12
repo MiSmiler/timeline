@@ -126,6 +126,79 @@ Cron job 创建示例：
 
 ---
 
+## Re-setup（重新部署）
+
+在已有项目上重跑 setup 时，执行以下步骤：
+
+### 1. 数据目录迁移
+
+如果项目有旧的 `timeline/` 目录，需迁移到 `timelines/`：
+
+```bash
+cd /path/to/project
+mkdir -p timelines
+cp -r timeline/* timelines/
+rm -rf timeline
+```
+
+### 2. 注入模板 + 清理 AGENTS.md
+
+```bash
+python3 /path/to/skills/setup-timeline/scripts/setup_agents.py .
+```
+
+`setup_agents.py` 只处理 marker 区域（幂等替换），但旧的 AGENTS.md 可能有 marker 外的过时内容。重跑后检查：
+
+1. 运行 `setup_agents.py`（自动追加/替换 marker 区域）
+2. 检查 marker 外是否有与模板冲突的旧内容
+3. 如有，手动清理或重写 AGENTS.md（保留项目头 + marker 区域即可）
+
+典型需要清理的旧内容：
+- 引用 `timeline/` 而非 `timelines/`
+- 引用 `skills/timeline/SKILL.md`（硬编码路径）而非 `timeline` skill（按需加载）
+- 包含脚本路径细节（应由 wrapper 处理，不在 AGENTS.md 中）
+
+### 3. 验证清单
+
+按顺序检查，全部通过才算部署完成：
+
+```bash
+# 1. Wrapper 脚本存在且内容正确
+ls -la "$HERMES_HOME/scripts/"  # 应有 4 个 .sh
+cat "$HERMES_HOME/scripts/todo_overdue.sh"  # cd 路径和 python3 路径是否正确
+
+# 2. 数据目录存在
+ls timelines/  # 应有 .md 文件
+
+# 3. AGENTS.md 有 marker 且内容正确
+grep -c "timeline-setup-start" AGENTS.md  # 应为 1
+grep "timelines/" AGENTS.md  # 应引用 timelines/ 而非 timeline/
+
+# 4. 脚本可运行
+bash "$HERMES_HOME/scripts/todo_overdue.sh"
+bash "$HERMES_HOME/scripts/todo_list.sh"
+bash "$HERMES_HOME/scripts/validate.sh"
+
+# 5. Cron job 配置正确（如有）
+# timeline-hourly 应存在，script=todo_overdue.sh，no_agent=true
+```
+
+### 4. Profile `$HOME` 陷阱
+
+命名 profile 的 `$HOME` 被重定向到 `~/.hermes/profiles/<name>/home/`，会覆盖真实 `~/.gitconfig` 等配置文件。如果发现 git commit author 不对：
+
+```bash
+# 检查 profile 的 gitconfig 是否覆盖了真实的
+git config --list --show-origin | grep "user\."
+
+# 修复：把真实的 .gitconfig 同步到 profile
+cp ~/.gitconfig ~/.hermes/profiles/<profile>/home/.gitconfig
+```
+
+注意 `$HOME`（shell/git 读的）和 `HERMES_HOME`（Hermes 数据目录）是两个不同的路径。
+
+---
+
 ## 维护规则
 
 | 操作 | 后果 | 处理 |
