@@ -42,9 +42,43 @@ def extract_h1_date(filepath):
     return None
 
 
+def validate_undated_file(filepath, filename):
+    """Validate 0000-00-00.md: only ## Todos allowed, no timed todos."""
+    errors = []
+    sections = []
+    timed_todos = []
+
+    with open(filepath, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    in_todos_section = False
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith('## '):
+            section_name = stripped[3:].strip()
+            sections.append(section_name)
+            in_todos_section = (section_name == 'Todos')
+            continue
+        if in_todos_section and stripped.startswith('- [ ]'):
+            content = stripped[5:].strip()
+            if re.match(r'^\d{1,2}:\d{2}\s+', content):
+                timed_todos.append((i + 1, content))
+
+    # Check: only ## Todos section allowed
+    allowed = {'Todos'}
+    forbidden = [s for s in sections if s not in allowed]
+    if forbidden:
+        errors.append(f"{filename}: 不能有 {'/'.join(forbidden)} 章节（仅允许 Todos）")
+
+    # Check: no timed todos
+    for line_no, content in timed_todos:
+        errors.append(f"{filename}: Todo \"{content}\" 不允许有时间前缀（line {line_no}）")
+
+    return errors
+
+
 def main():
     timeline_dir = find_timeline_dir()
-
     if not timeline_dir:
         print("Error: timeline directory not found", file=sys.stderr)
         sys.exit(1)
@@ -58,11 +92,15 @@ def main():
 
         filepath = os.path.join(timeline_dir, filename)
         filename_date = filename[:-3]  # Remove .md
-
-        h1_date = extract_h1_date(filepath)
-
         checked += 1
 
+        # Validate 0000-00-00.md special rules
+        if filename_date == '0000-00-00':
+            errors.extend(validate_undated_file(filepath, filename))
+            continue
+
+        # Standard: H1 date must match filename
+        h1_date = extract_h1_date(filepath)
         if h1_date is None:
             errors.append(f"{filename}: No H1 header found")
         elif h1_date != filename_date:
