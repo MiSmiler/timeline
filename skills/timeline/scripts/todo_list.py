@@ -130,7 +130,7 @@ def main():
         for todo in todos:
             total_count += 1
             time_str = f"{todo['time']} " if todo['time'] else ""
-            status = "~~" in todos and "❌" or "⬜"
+            status = "❌" if "~~" in todo['description'] else "⬜"
             print(f"  - [ ] {time_str}{todo['description']}")
             if todo['detail']:
                 for detail_line in todo['detail'].split('\n'):

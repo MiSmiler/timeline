@@ -1,21 +1,23 @@
 ---
 name: timeline
-description: Use when user wants to create reminders or todos, record completed actions or events, check pending tasks, or modify/move existing todos.
+description: "Timeline skill for managing todos and events. 用于管理待办事项和事件记录，支持自然语言创建、修改、完成待办，以及 cron 定时提醒。"
+tags: []
+related_skills: []
 ---
 
-# Timeline Skill
+# Timeline 技能
 
-A skill for managing todos and events stored in markdown files, organized by date.
+管理存储在 markdown 文件中的待办事项（Todo）和事件（Event），按日期组织。
 
-## Data Storage
+## 数据存储
 
-### File Location
-- Directory: `timeline/` at project root
-- Filename format: `YYYY-MM-DD.md` (e.g., `2026-06-11.md`)
-- Undated todos: `0000-00-00.md`
+### 文件位置
+- 目录：项目根目录下的 `timeline/`
+- 文件名格式：`YYYY-MM-DD.md`（如 `2026-06-12.md`）
+- 无日期待办：`0000-00-00.md`
 
-### File Structure
-Each file follows this template:
+### 文件结构
+每个文件遵循以下模板：
 
 ```markdown
 # YYYY-MM-DD
@@ -27,155 +29,238 @@ Each file follows this template:
 ## Notes
 ```
 
-### Data Formats
+### 数据格式
 
-#### Events
-- Format: `- HH:MM Description.`
-- Must have a time
-- Represents something that happened at a specific moment
-- Supports detail (indented with 4 spaces):
-
-```markdown
-- 14:30 Met with client.
-    - Discussed project timeline.
-```
-
-#### Todos
-- Format: `- [ ] HH:MM Description` (with time) or `- [ ] Description` (without time)
-- States:
-  - `[ ]` - Not completed
-  - `[x]` - Completed
-  - `[ ] ~~Description~~` - Abandoned (strikethrough)
-- Supports detail:
+#### Events（事件）
+- 格式：`- HH:MM 描述。`
+- 必须有时间
+- 表示在特定时刻发生的事情
+- 支持详情（缩进 4 空格）：
 
 ```markdown
-- [ ] 15:00 Clean desk
-    - Throw away expired snacks.
+- 14:30 和客户开会。
+    - 讨论了项目时间线。
 ```
 
-#### Notes
-- Free-form text for thoughts, goals, moods, etc.
-- No specific format required
+#### Todos（待办）
+- 格式：`- [ ] HH:MM 描述`（有时间）或 `- [ ] 描述`（无时间）
+- 状态：
+  - `[ ]` - 未完成
+  - `[x]` - 已完成
+  - `[ ] ~~描述~~` - 已放弃（删除线）
+- 支持详情：
 
-### Sorting Rules
-- Within each section, items with time are sorted chronologically
-- Items without time appear at the end
+```markdown
+- [ ] 15:00 收拾桌面
+    - 扔掉过期零食。
+```
+
+#### Notes（笔记）
+- 自由格式文本，记录想法、目标、心情等
+- 无特定格式要求
+
+### 排序规则
+- 每个章节内，有时间的条目按时间排序
+- 无时间的条目排在最后
 
 ---
 
-## Operations
+## 操作流程
 
-### Pre-flight Check
+### 预检查
 
-**Before ANY operation involving date/time, ALWAYS check current system time first.**
+**在任何涉及日期/时间的操作前，务必先检查当前系统时间。**
 
-1. Check current time
-2. If time is between 00:00-05:00 (late night/early morning):
-   - User saying "今天" might mean yesterday (they haven't slept yet)
-   - User saying "明天" might mean today
-   - **Always confirm** which date they actually mean
-3. Proceed with operation only after date is confirmed
+1. 检查当前时间
+2. 如果时间在 00:00-05:00（深夜/凌晨）：
+   - 用户说"今天"可能指昨天（还没睡觉）
+   - 用户说"明天"可能指今天
+   - **务必确认**用户实际指哪天
+3. 确认日期后再继续操作
 
-### Creating Todos
-**Trigger words**: "提醒", "待办", "要做", "创建待办"
+### 创建待办
+**触发词**：「提醒」「待办」「要做」「创建待办」
 
-**Examples**:
-- "提醒我明天三点开会" -> Create todo for tomorrow at 15:00
-- "创建待办，明天买洗发水" -> Create todo for tomorrow (no time)
-- "下周三提醒我准备会议纪要" -> Create todo for next Wednesday
+**示例**：
+- "提醒我明天三点开会" → 创建明天 15:00 的待办
+- "创建待办，明天买洗发水" → 创建明天的待办（无时间）
+- "下周三提醒我准备会议纪要" → 创建下周三的待办
 
-**Date parsing**:
-- Relative: "今天", "明天", "后天"
-- Specific: "下周一", "这周五", "6月15日"
-- When uncertain, ask for clarification
+**日期解析**：
+- 相对：「今天」「明天」「后天」
+- 具体：「下周一」「这周五」「6月15日」
+- 不确定时，主动询问
 
-**Time parsing**:
-- Default: PM (e.g., "三点" -> 15:00)
-- "凌晨" prefix for early hours
-- When current time is late night/early morning (after midnight), "明天" might mean "today" - ask for confirmation
+**时间解析**：
+- 默认：下午（如"三点" → 15:00）
+- 「凌晨」前缀表示凌晨时段
+- 深夜/凌晨时（午夜后），"明天"可能指"今天"——需确认
 
-### Creating Events
-**Trigger words**: "约了", "买了", completed action verbs
+**Cron 提醒**：
+- 如果待办是**今天**的且有时间，创建对应的 cron job
+- 命名格式：`timeline-{YYYYMMDD}-{HHMM}`（如 `timeline-20260612-1500`）
+- 如果该时间已有 cron job（同一天多个待办），不重复创建
+- 使用 `scripts/todo_by_time.py` 作为 cron 的脚本，no_agent 模式运行
 
-**Important**: Event time = when the action happened, NOT when the scheduled event will occur.
+### 创建事件
+**触发词**：「约了」「买了」等完成动作的动词
 
-**Examples**:
-- "约了客户明天下午三点开会" -> Event created for NOW, recording that you made the appointment
-- "买了洗发水了" -> Event created for current time
+**重要**：事件时间 = 动作发生的时间，不是预定事件的时间。
 
-**After creating an event for a future commitment**, ask user if they want to create a corresponding todo.
+**示例**：
+- "约了客户明天下午三点开会" → 事件创建为当前时间，记录你约了这个会
+- "买了洗发水了" → 事件创建为当前时间
 
-**Time rules**:
-- Must have a time
-- If not specified, defaults to current time
-- Can specify past time
+**创建未来承诺的事件后**，询问用户是否要创建对应的待办。
 
-### Completing Todos
-**Trigger words**: "做完了", "搞定了", completed action verbs
+**时间规则**：
+- 必须有时间
+- 未指定则默认当前时间
+- 可以指定过去的时间
 
-**Flow**:
-1. Create an Event recording the completed action
-2. Search for matching Todo across all files (including `0000-00-00.md`)
-3. If exactly one match: mark as `[x]`
-4. If multiple matches: ask user which one
-5. If no match: only create the Event
+### 完成待办
+**触发词**：「做完了」「搞定了」等完成动作的动词
 
-**Example**:
+**流程**：
+1. 创建一个 Event 记录完成的动作
+2. 在所有文件中搜索匹配的 Todo（包括 `0000-00-00.md`）
+3. 如果恰好匹配一条：标记为 `[x]`
+4. 如果匹配多条：询问用户选哪条
+5. 如果没有匹配：只创建 Event
+
+**Cron 清理**：
+- 完成待办后，检查该时间是否还有其他未完成待办
+- 如果没有，删除对应的 cron job
+- 使用 cronjob 工具的 remove 操作
+
+**示例**：
 ```
-User: 买了洗发水了
-AI: 
-- Creates Event: "15:30 买了洗发水。"
-- Finds matching Todo: "买洗发水"
-- Marks Todo as [x]
+用户：买了洗发水了
+AI：
+- 创建 Event："15:30 买了洗发水。"
+- 搜索匹配 Todo："买洗发水"
+- 标记 Todo 为 [x]
+- 检查是否需要删除 cron job
 ```
 
-### Abandoning Todos
-**Trigger words**: "不做了", "算了", "取消", "放弃"
+### 放弃待办
+**触发词**：「不做了」「算了」「取消」「放弃」
 
-**Action**: Add strikethrough to the todo description
-- `- [ ] ~~Description~~`
+**操作**：给待办描述加删除线
+- `- [ ] ~~描述~~`
 
-### Moving Todos
-**Trigger words**: "移到", "推到", "延期到", "改到"
+**Cron 清理**：同「完成待办」流程。
 
-**Examples**:
-- "把这个移到明天" -> Move to tomorrow
-- "推到晚上六点" -> Change time to 18:00 (same day or target day)
-- "昨天的待办移到今天" -> Move yesterday's todos to today
+### 移动待办
+**触发词**：「移到」「推到」「延期到」「改到」
 
-### Editing
-**Trigger words**: "改成", "修改", "换成"
+**示例**：
+- "把这个移到明天" → 移到明天
+- "推到晚上六点" → 改时间为 18:00（同一天或目标天）
+- "昨天的待办移到今天" → 把昨天的待办移到今天
 
-**Supports**: Editing time or description for both Todos and Events
+**Cron 处理**：
+- 如果原时间的 cron job 没有其他待办，删除旧 cron
+- 如果新时间是今天，创建新 cron job
+- 命名格式：`timeline-{YYYYMMDD}-{HHMM}`
 
-### Deleting
-**Trigger words**: "删掉", "删除"
+### 编辑
+**触发词**：「改成」「修改」「换成」
 
-**Action**: Ask for confirmation before deleting
+**支持**：修改 Todo 或 Event 的时间或描述
 
-### Viewing
-**Trigger words**: "今天有什么事", "看看今天的待办", "今天的事"
+**Cron 处理**：同「移动待办」流程。
 
-**Action**: Display Events, Todos, and Notes for the specified day (default: today)
+### 删除
+**触发词**：「删掉」「删除」
 
-### Review
-**Trigger words**: "有什么事做", "过期的", "看看没做完的"
+**操作**：删除前先确认
 
-**Action**: Display all overdue uncompleted todos across all files
+**Cron 清理**：同「完成待办」流程。
 
-### Adding Details
-**Trigger words**: "补充", "备注", "加个备注"
+### 查看
+**触发词**：「今天有什么事」「看看今天的待办」「今天的事」
 
-**Action**: Add indented detail to an existing item
+**操作**：显示指定日期的 Events、Todos 和 Notes（默认：今天）
 
-**Can also add detail during creation**:
+### 回顾
+**触发词**：「有什么事做」「过期的」「看看没做完的」
+
+**操作**：显示所有过期的未完成待办
+
+**快捷方式**：可使用脚本 `scripts/todo_overdue.py` 获取过期和无时间待办。
+
+### 补充详情
+**触发词**：「补充」「备注」「加个备注」
+
+**操作**：给现有条目添加缩进的详情
+
+**也可以在创建时添加详情**：
 - "提醒我三点收拾桌面，记得扔掉过期零食"
 
 ---
 
-## Response Format
+## 辅助脚本
 
-After completing an operation, show the file and content:
+### 列出所有未完成待办
+```bash
+python3 scripts/todo_list.py
+```
+
+### 按时间提取待办
+```bash
+python3 scripts/todo_by_time.py YYYY-MM-DD HH:MM
+```
+用于 cron job 定时提醒，有则输出，无则静默。
+
+### 提取过期和无时间待办
+```bash
+python3 scripts/todo_overdue.py [YYYY-MM-DD HH:MM]
+```
+用于每小时扫描，有则输出，无则静默。不传参数则使用当前系统时间。
+
+### 验证日期一致性
+```bash
+python3 scripts/validate.py
+```
+检查 H1 日期是否与文件名匹配。
+
+---
+
+## Cron Job 管理
+
+> 设计决策详见 `references/cron-design.md`
+
+### 定时提醒（按 todo 时间）
+- **触发时机**：创建或修改今天有时间的待办时
+- **命名格式**：`timeline-{YYYYMMDD}-{HHMM}`
+- **脚本**：`scripts/todo_by_time.py YYYY-MM-DD HH:MM`
+- **模式**：no_agent（脚本直接输出，无 LLM 开销）
+- **推送**：所有已连接渠道
+- **行为**：有到期待办则推送，无则静默
+
+### 每小时扫描
+- **触发频率**：每小时一次
+- **命名**：`timeline-hourly`（固定）
+- **脚本**：`scripts/todo_overdue.py`
+- **模式**：no_agent
+- **推送**：所有已连接渠道
+- **内容**：过期待办（日期已过或时间已过）+ 无时间待办
+
+### 生命周期管理
+| 操作 | Cron 处理 |
+|------|-----------|
+| 创建今天有时间的待办 | 检查是否已有同名 cron，无则创建 |
+| 修改待办时间 | 删旧 cron（若无其他待办），建新 cron（若新时间是今天） |
+| 完成/取消待办 | 检查该时间是否还有其他待办，无则删 cron |
+| 删除待办 | 同上 |
+| 创建非今天的待办 | 不创建 cron（由 daily review 负责） |
+
+---
+
+## 回复格式
+
+操作完成后，显示文件和内容：
 
 ```
 已在 2026-06-12.md 创建待办：
@@ -185,45 +270,27 @@ After completing an operation, show the file and content:
 
 ---
 
-## Time Parsing Rules
+## 时间解析规则
 
-| User says | Interpretation |
-|-----------|----------------|
-| "三点" | 15:00 (default PM) |
+| 用户说法 | 解释 |
+|---------|------|
+| "三点" | 15:00（默认下午） |
 | "凌晨三点" | 03:00 |
 | "早上九点" | 09:00 |
-| "今晚八点" | 20:00 today |
-| "明天" | Tomorrow |
-| "下周三" | Next Wednesday |
+| "今晚八点" | 20:00 今天 |
+| "明天" | 明天 |
+| "下周三" | 下周三 |
 
-**Late night edge case**: If current time is after midnight and user says "明天", confirm whether they mean "today" (since they haven't slept yet) or actual tomorrow.
+**深夜边界**：当前时间在午夜后，用户说"明天"时，确认是指"今天"（还没睡）还是真正的明天。
 
-**Ambiguous cases**: Always ask for clarification (e.g., "下周开会" -> "请问是下周几？")
-
----
-
-## Helper Scripts
-
-### List Uncompleted Todos
-```bash
-python3 .claude/skills/timeline/scripts/todo_list.py
-```
-
-Returns all uncompleted todos across all files.
-
-### Validate Date Consistency
-```bash
-python3 .claude/skills/timeline/scripts/validate.py
-```
-
-Checks if the H1 date matches the filename for all markdown files.
+**模糊情况**：务必询问确认（如"下周开会" → "请问是下周几？"）
 
 ---
 
-## Edge Cases
+## 边界情况
 
-1. **No matching todo found when completing**: Only create the Event, inform user
-2. **Multiple potential matches**: List them and ask user to confirm
-3. **Time in the past for new todo**: Allow it (for recording missed items)
-4. **File doesn't exist**: Create it with the standard template
-5. **Empty sections**: Always pre-create the three H2 headers (Events, Todos, Notes)
+1. **完成待办时没有匹配**：只创建 Event，告知用户
+2. **多个可能匹配**：列出选项让用户确认
+3. **新待办的时间在过去**：允许（用于记录遗漏的事项）
+4. **文件不存在**：用标准模板创建
+5. **空章节**：始终预创建三个 H2 标题（Events、Todos、Notes）
