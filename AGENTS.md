@@ -43,7 +43,7 @@ cat /tmp/test-timeline/AGENTS.md
 
 本项目的 skills 目录通过 Hermes 的 `external_dirs` 注册到用户 profile。用户使用流程：
 
-1. 首次使用：加载 `setup-timeline` skill → 部署 wrapper 脚本 + 注入 AGENTS.md + 创建 `timeline/` 目录
+1. 首次使用：加载 `setup-timeline` skill → 部署 wrapper 脚本 + 注入 AGENTS.md + 创建 `timelines/` 目录
 2. 日常使用：直接通过自然语言触发 `timeline` skill
 
 ## 发布

@@ -6,7 +6,7 @@
 示例：python3 todo_overdue.py 2026-06-12 15:30
 
 行为：
-- 扫描 timeline/ 下所有 .md 文件
+- 扫描 timelines/ 下所有 .md 文件
 - 提取两类 todo：
   1. 过期 todo：日期已过，或日期相同但时间已过
   2. 无时间 todo：任何日期文件中的无时间条目
@@ -20,16 +20,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
-def find_timeline_dir():
-    """查找 timeline 目录。"""
-    if os.path.isdir("timeline"):
-        return "timeline"
-    parent = os.getcwd()
-    while parent != "/":
-        timeline_path = os.path.join(parent, "timeline")
-        if os.path.isdir(timeline_path):
-            return timeline_path
-        parent = os.path.dirname(parent)
+def find_user_timelines_data_dir():
+    """查找 timelines 目录。"""
+    if os.path.isdir("timelines"):
+        return "timelines"
     return None
 
 
@@ -93,10 +87,10 @@ def main():
         now_time = f"{now.hour:02d}:{now.minute:02d}"
 
     now_date_tuple = (now_date.year, now_date.month, now_date.day)
+    timeline_dir = find_user_timelines_data_dir()
 
-    timeline_dir = find_timeline_dir()
     if not timeline_dir:
-        print("错误: 未找到 timeline 目录", file=sys.stderr)
+        print("错误: 未找到 timelines 目录", file=sys.stderr)
         sys.exit(1)
 
     overdue_todos = []  # (filename, time, description)

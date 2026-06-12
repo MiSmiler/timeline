@@ -8,7 +8,7 @@
 行为：
 - 不传参数：使用当前日期和时间（适合 no_agent cron job 直接调用）
 - 传参数：使用指定的日期和时间
-- 读取 timeline/YYYY-MM-DD.md
+- 读取 timelines/YYYY-MM-DD.md
 - 提取时间匹配 HH:MM 的未完成 todo
 - 有则输出，无则静默（空输出）
 """
@@ -20,16 +20,10 @@ from datetime import datetime
 from pathlib import Path
 
 
-def find_timeline_dir():
-    """查找 timeline 目录。"""
-    if os.path.isdir("timeline"):
-        return "timeline"
-    parent = os.getcwd()
-    while parent != "/":
-        timeline_path = os.path.join(parent, "timeline")
-        if os.path.isdir(timeline_path):
-            return timeline_path
-        parent = os.path.dirname(parent)
+def find_user_timelines_data_dir():
+    """查找 timelines 目录。"""
+    if os.path.isdir("timelines"):
+        return "timelines"
     return None
 
 
@@ -95,10 +89,10 @@ def main():
     parts = target_time.split(":")
     if len(parts) == 2:
         target_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+    timeline_dir = find_user_timelines_data_dir()
 
-    timeline_dir = find_timeline_dir()
     if not timeline_dir:
-        print("错误: 未找到 timeline 目录", file=sys.stderr)
+        print("错误: 未找到 timelines 目录", file=sys.stderr)
         sys.exit(1)
 
     filepath = os.path.join(timeline_dir, f"{target_date}.md")

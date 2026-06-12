@@ -65,7 +65,7 @@ done
 
 ### 3. 注入 AGENTS.md + 创建数据目录
 
-运行注入脚本，将 timeline 使用规则写入用户项目的 AGENTS.md，同时创建 `timeline/` 数据目录：
+运行注入脚本，将 timeline 使用规则写入用户项目的 AGENTS.md，同时创建 `timelines/` 数据目录：
 
 ```bash
 python3 "$(dirname "$0")/setup_agents.py" [target_dir]
@@ -73,7 +73,7 @@ python3 "$(dirname "$0")/setup_agents.py" [target_dir]
 
 - `target_dir` 可选，默认为当前目录
 - 脚本会自动：
-  - 创建 `timeline/` 目录
+  - 创建 `timelines/` 目录
   - 将 `templates/AGENTS_TEMPLATE.md` 的内容注入到 `target_dir/AGENTS.md`
   - 用 `<!-- timeline-setup-start -->` / `<!-- timeline-setup-end -->` 包裹，支持幂等重跑
 

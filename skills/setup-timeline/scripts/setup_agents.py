@@ -34,8 +34,8 @@ def main() -> None:
     target_dir = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
     agents_path = target_dir / "AGENTS.md"
 
-    # Create timeline/ data directory
-    timeline_dir = target_dir / "timeline"
+    # Create timelines/ data directory
+    timeline_dir = target_dir / "timelines"
     timeline_dir.mkdir(parents=True, exist_ok=True)
     print(f"Ensured directory: {timeline_dir}")
 

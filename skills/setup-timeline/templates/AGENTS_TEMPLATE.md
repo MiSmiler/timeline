@@ -1,6 +1,6 @@
 ## Timeline 系统
 
-- 数据存储在 `timeline/` 目录
+- 数据存储在 `timelines/` 目录
 - 文件名格式：`YYYY-MM-DD.md`，无日期待办用 `0000-00-00.md`
 - 每个文件有三个 H2 章节：`## Events`、`## Todos`、`## Notes`
 - 详细规则见 `timeline` skill（按需加载）
@@ -17,7 +17,7 @@
 ## 行为准则
 
 1. **操作前先检查系统时间**，凌晨时段（00:00-05:00）对"今天"要确认
-2. **文件操作使用 `timeline/` 目录**，不要在其他位置创建日志文件
+2. **文件操作使用 `timelines/` 目录**，不要在其他位置创建日志文件
 3. **Cron 提醒**：
    - 今天有时间的待办 → 创建 cron job（命名：`timeline-{YYYYMMDD}-{HHMM}`）
    - 非今天的待办 → 不创建 cron（由 daily review 负责）

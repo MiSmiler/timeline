@@ -9,18 +9,10 @@ import sys
 from pathlib import Path
 
 
-def find_timeline_dir():
-    """Find the timeline directory."""
-    # Try current directory first
-    if os.path.isdir("timeline"):
-        return "timeline"
-    # Try parent directories
-    parent = os.getcwd()
-    while parent != "/":
-        timeline_path = os.path.join(parent, "timeline")
-        if os.path.isdir(timeline_path):
-            return timeline_path
-        parent = os.path.dirname(parent)
+def find_user_timelines_data_dir():
+    """Find the user's timelines data directory."""
+    if os.path.isdir("timelines"):
+        return "timelines"
     return None
 
 
@@ -100,10 +92,10 @@ def parse_file(filepath):
 
 
 def main():
-    timeline_dir = find_timeline_dir()
+    timeline_dir = find_user_timelines_data_dir()
 
     if not timeline_dir:
-        print("Error: timeline directory not found", file=sys.stderr)
+        print("Error: timelines directory not found", file=sys.stderr)
         sys.exit(1)
 
     all_todos = {}  # filename -> [todos]
