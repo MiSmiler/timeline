@@ -1,13 +1,13 @@
 ---
-name: setup-timeline
-description: "Deploy timeline skill to Hermes Agent: create wrapper scripts in $HERMES_HOME/scripts/, inject AGENTS.md into user project, configure cron jobs. 一键部署 timeline 的 Hermes 环境。"
+name: setup-timeline-for-hermes
+description: "Deploy timeline skill to Hermes Agent: inject AGENTS.md into user project, configure cron jobs. 一键部署 timeline 的 Hermes 环境。"
 tags: []
 related_skills: ["timeline"]
 ---
 
-# setup-timeline 技能
+# setup-timeline-for-hermes 技能
 
-部署 timeline skill 的 Hermes 运行环境。包含创建 wrapper 脚本、配置 cron job。
+部署 timeline skill 的 Hermes 运行环境。包含注入 AGENTS.md、配置 cron job。
 
 **触发条件**：用户说「部署 timeline」「设置 timeline cron」「setup timeline」等。
 
