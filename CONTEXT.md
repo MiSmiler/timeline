@@ -35,10 +35,13 @@ _Avoid_: Validator, checker
 ## Architecture
 
 **timeline skill**:
-Platform-agnostic core skill that reads/writes markdown files. Does not depend on specific platform features.
+Platform-agnostic core skill that defines data format and integrity constraints. Does not contain trigger words, operation flows, or platform-specific features.
 
 **setup-\* skill**:
-Platform-specific deployment skill that handles wrapper scripts, cron integration, and AGENTS.md injection. Examples: `setup-timeline-for-hermes`, `setup-timeline-for-openclaw`.
+Platform-specific deployment skill that handles cron integration and AGENTS.md injection. Examples: `setup-timeline-for-hermes`, `setup-timeline-for-openclaw`.
+
+**AGENTS.md**:
+User project-level configuration file that defines agent behavior: trigger words, operation flows, time parsing rules, cron job schedules, user preferences. Agent adaptations should modify AGENTS.md, not SKILL.md.
 
 ## Boundaries
 
