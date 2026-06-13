@@ -4,7 +4,7 @@ Timeline 是一个基于 markdown 文件的待办/事件管理工具，以 Herme
 
 ## 开发约定
 
-- **修改 timeline SKILL.md** → 检查是否需要同步更新 `setup-timeline/templates/AGENTS.md`
+- **修改 timeline SKILL.md** → 检查是否需要同步更新 `setup-timeline/templates/AGENTS_TEMPLATE.md`
 - **修改/新增脚本** → 检查是否需要更新 `setup-timeline/SKILL.md` 的 wrapper 列表
 - **修改 cron 规则** → 同步更新 `references/cron-design.md`
 
