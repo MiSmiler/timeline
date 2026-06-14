@@ -17,9 +17,28 @@ def find_user_timelines_data_dir():
 
 
 def parse_todo_line(line):
-    """Parse a todo line and return (time, description, detail_lines) or None."""
+    """Parse a todo line and return (time, description) or None.
+
+    Returns tuple of (time_str or None, description_text).
+
+    >>> parse_todo_line('- [ ] 09:30 晨会')
+    ('09:30', '晨会')
+    >>> parse_todo_line('- [ ] 无时间前缀')
+    (None, '无时间前缀')
+    >>> parse_todo_line('- [ ] ~~已放弃~~')
+    (None, '已放弃')
+    >>> print(parse_todo_line('- [x] 已完成'))  # 已完成的不返回
+    None
+    >>> parse_todo_line('- [ ] 14:00')  # 只有时间没有描述
+    ('14:00', '')
+    >>> print(parse_todo_line('普通文本'))
+    None
+    """
     # Match: - [ ] HH:MM description or - [ ] description
     # Also match strikethrough abandoned todos
+    if not line.strip().startswith('- [ ]'):
+        return None
+
     match = re.match(r'^- \[ \] (?:~~)?(.+?)(?:~~)?$', line.strip())
     if not match:
         return None
@@ -27,9 +46,9 @@ def parse_todo_line(line):
     content = match.group(1).strip()
 
     # Check if it has time prefix
-    time_match = re.match(r'^(\d{1,2}:\d{2})\s+(.+)$', content)
+    time_match = re.match(r'^(\d{1,2}:\d{2})(?:\s+(.+))?$', content)
     if time_match:
-        return (time_match.group(1), time_match.group(2))
+        return (time_match.group(1), time_match.group(2) or '')
 
     return (None, content)
 

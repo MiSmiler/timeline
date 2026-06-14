@@ -27,8 +27,36 @@ def find_user_timelines_data_dir():
     return None
 
 
+def normalize_time(time_str):
+    """补零对齐时间格式。
+
+    >>> normalize_time('9:00')
+    '09:00'
+    >>> normalize_time('09:00')
+    '09:00'
+    >>> normalize_time('9:5')
+    '09:05'
+    >>> normalize_time('15:30')
+    '15:30'
+    """
+    parts = time_str.split(":")
+    if len(parts) == 2:
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+    return time_str
+
+
 def parse_filename_date(filename):
-    """从文件名解析日期，返回 (year, month, day) 或 None。"""
+    """从文件名解析日期，返回 (year, month, day) 或 None。
+
+    >>> parse_filename_date('2026-06-12.md')
+    (2026, 6, 12)
+    >>> parse_filename_date('0000-00-00.md')
+    (0, 0, 0)
+    >>> print(parse_filename_date('invalid.md'))
+    None
+    >>> print(parse_filename_date('2026-6-12.md'))  # 不匹配，月份必须是两位
+    None
+    """
     match = re.match(r"^(\d{4})-(\d{2})-(\d{2})\.md$", filename)
     if match:
         return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
@@ -60,9 +88,7 @@ def extract_todos(filepath):
             content = stripped[5:].strip()
             time_match = re.match(r"^(\d{1,2}:\d{2})\s+(.+)$", content)
             if time_match:
-                time_str = time_match.group(1)
-                if len(time_str) == 4:
-                    time_str = "0" + time_str
+                time_str = normalize_time(time_match.group(1))
                 todos.append((time_str, time_match.group(2), i + 1))
             else:
                 # 无时间的 todo
@@ -75,10 +101,7 @@ def main():
     # 解析当前时间
     if len(sys.argv) >= 3:
         now_date_str = sys.argv[1]
-        now_time_str = sys.argv[2]
-        # 补零
-        parts = now_time_str.split(":")
-        now_time_str = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+        now_time_str = normalize_time(sys.argv[2])
         now_date = datetime.strptime(now_date_str, "%Y-%m-%d").date()
         now_time = now_time_str
     else:

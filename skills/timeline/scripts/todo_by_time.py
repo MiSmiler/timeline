@@ -27,8 +27,31 @@ def find_user_timelines_data_dir():
     return None
 
 
+def normalize_time(time_str):
+    """补零对齐时间格式。
+
+    >>> normalize_time('9:00')
+    '09:00'
+    >>> normalize_time('09:00')
+    '09:00'
+    >>> normalize_time('9:5')
+    '09:05'
+    >>> normalize_time('15:30')
+    '15:30'
+    """
+    parts = time_str.split(":")
+    if len(parts) == 2:
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+    return time_str
+
+
 def extract_todos_by_time(filepath, target_time):
-    """提取指定时间的未完成 todo。"""
+    """提取指定时间的未完成 todo。
+
+    返回 [{"description": str, "details": [str, ...]}, ...]
+
+    注意：target_time 应为已补零格式 (HH:MM)。
+    """
     todos = []
     in_todos_section = False
 
@@ -54,10 +77,7 @@ def extract_todos_by_time(filepath, target_time):
             content = stripped[5:].strip()
             time_match = re.match(r"^(\d{1,2}:\d{2})\s+(.+)$", content)
             if time_match:
-                time_str = time_match.group(1)
-                # 补零对齐：9:00 -> 09:00
-                if len(time_str) == 4:
-                    time_str = "0" + time_str
+                time_str = normalize_time(time_match.group(1))
                 if time_str == target_time:
                     desc = time_match.group(2)
                     # 收集缩进的详情行
@@ -85,10 +105,7 @@ def main():
         target_date = now.strftime("%Y-%m-%d")
         target_time = now.strftime("%H:%M")
 
-    # 补零：15:0 -> 15:00，9:5 -> 09:05
-    parts = target_time.split(":")
-    if len(parts) == 2:
-        target_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+    target_time = normalize_time(target_time)
     timeline_dir = find_user_timelines_data_dir()
 
     if not timeline_dir:

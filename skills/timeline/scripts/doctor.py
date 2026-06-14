@@ -19,7 +19,23 @@ def find_user_timelines_data_dir():
 
 
 def extract_time_from_line(line):
-    """Extract time prefix from a todo or event line."""
+    """Extract time prefix from a todo or event line.
+
+    >>> extract_time_from_line('- [ ] 09:30 晨会')
+    '09:30'
+    >>> extract_time_from_line('- [ ] 9:30 晨会')  # 小时可以一位
+    '9:30'
+    >>> extract_time_from_line('- [x] 14:00 已完成')
+    '14:00'
+    >>> print(extract_time_from_line('- [ ] ~~已放弃~~'))  # 无时间，返回 None
+    None
+    >>> extract_time_from_line('- 10:30 事件记录')
+    '10:30'
+    >>> print(extract_time_from_line('- [ ] 无时间前缀'))
+    None
+    >>> print(extract_time_from_line('普通文本行'))
+    None
+    """
     stripped = line.strip()
     # Todo format: - [ ] HH:MM description or - [ ] description
     if stripped.startswith('- [ ]') or stripped.startswith('- [x]'):
@@ -40,7 +56,17 @@ def extract_time_from_line(line):
 
 
 def time_to_sort_key(time_str):
-    """Convert time string to sortable key."""
+    """Convert time string to sortable key.
+
+    >>> time_to_sort_key('09:30')
+    (9, 30)
+    >>> time_to_sort_key('14:00')
+    (14, 0)
+    >>> time_to_sort_key(None)
+    (24, 60)
+    >>> time_to_sort_key('')
+    (24, 60)
+    """
     if not time_str:
         return (24, 60)  # No time goes last
     parts = time_str.split(':')
@@ -48,37 +74,44 @@ def time_to_sort_key(time_str):
 
 
 def fix_line_issues(line):
-    """Fix line-level issues: time format, todo status, strikethrough."""
+    """Fix line-level issues: time format, todo status.
+
+    Note: Strikethrough fix is intentionally NOT implemented here.
+    Partial strikethrough (~~text without closing) is ambiguous and
+    should be fixed manually by the user.
+
+    >>> fix_line_issues('- [ ] 10.30 晨会\\n')
+    '- [ ] 10:30 晨会\\n'
+    >>> fix_line_issues('- [X] 已完成\\n')
+    '- [x] 已完成\\n'
+    >>> fix_line_issues('- [ ] 正常条目\\n')
+    '- [ ] 正常条目\\n'
+    >>> fix_line_issues('- 版本1.00发布\\n')  # 不修复非时间格式
+    '- 版本1.00发布\\n'
+    """
     new_line = line
 
-    # Fix time format: 10.30 → 10:30
-    matches = re.findall(r'(\d{1,2})\.(\d{2})', line)
-    for match in matches:
-        old_time = f"{match[0]}.{match[1]}"
-        new_time = f"{match[0]}:{match[1]}"
-        new_line = new_line.replace(old_time, new_time)
+    # Fix time format only in todo/event lines: 10.30 → 10:30
+    # Only match at the beginning of content to avoid false positives
+    stripped = line.strip()
+    if stripped.startswith('- [ ]') or stripped.startswith('- [x]') or stripped.startswith('- '):
+        # Extract content part
+        if stripped.startswith('- [ ]') or stripped.startswith('- [x]'):
+            content = stripped[5:].strip()
+        else:
+            content = stripped[2:].strip()
+        # Remove strikethrough for matching
+        if content.startswith('~~') and content.endswith('~~'):
+            content = content[2:-2]
+        # Match time at the start of content
+        match = re.match(r'^(\d{1,2})\.(\d{2})\s+', content)
+        if match:
+            old_time = f"{match.group(1)}.{match.group(2)}"
+            new_time = f"{match.group(1)}:{match.group(2)}"
+            new_line = new_line.replace(old_time, new_time, 1)
 
     # Fix todo status: [X] → [x]
     new_line = re.sub(r'- \[X\]', '- [x]', new_line)
-
-    # Fix strikethrough (partial)
-    stripped = new_line.strip()
-    if stripped.startswith('- [ ]'):
-        content = stripped[5:].strip()
-        starts_with_st = content.startswith('~~')
-        ends_with_st = content.endswith('~~')
-        if starts_with_st and not ends_with_st:
-            # Add closing ~~
-            idx = new_line.find('~~')
-            if idx != -1:
-                new_line = new_line[:idx] + '~~' + content + '~~' + '\n'
-        elif not starts_with_st and ends_with_st:
-            # Add opening ~~
-            idx = new_line.rfind('~~')
-            if idx != -1:
-                desc_start = new_line.find('- [ ]') + 5
-                desc = new_line[desc_start:idx].strip()
-                new_line = new_line[:desc_start] + '~~' + desc + '~~\n'
 
     return new_line
 
@@ -135,7 +168,7 @@ def doctor_file(filepath, filename, fix=False):
                     if re.match(r'^\d{1,2}:\d{2}\s+', content):
                         errors.append(f"Todo \"{content}\" not allowed to have time prefix")
 
-        if fix and (forbidden or any('Fixed' not in e for e in errors)):
+        if fix and forbidden:
             # Rewrite file with only Todos section
             final_lines = [f"# {filename_date}\n\n", "## Todos\n"]
             if 'Todos' in sections:
@@ -143,8 +176,7 @@ def doctor_file(filepath, filename, fix=False):
                     final_lines.append(fix_line_issues(line))
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.writelines(final_lines)
-            if forbidden:
-                errors.append(f"Fixed: Removed forbidden sections")
+            errors.append(f"Fixed: Removed forbidden sections")
 
         return errors
 
