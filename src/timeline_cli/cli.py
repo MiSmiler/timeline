@@ -78,8 +78,13 @@ def _dispatch(args: argparse.Namespace) -> None:
         else:
             print(f"Note action not implemented: {args.action}")
             sys.exit(1)
+    elif args.resource == "list":
+        from timeline_cli.commands.list import handle_list
+
+        handle_list(args)
     else:
-        print(f"Command not implemented yet: {args.resource} {args.action}")
+        action = getattr(args, "action", None)
+        print(f"Command not implemented yet: {args.resource} {action or ''}")
         sys.exit(1)
 
 
