@@ -113,6 +113,14 @@ def _dispatch(args: argparse.Namespace) -> None:
         from timeline_cli.commands.migrate import handle_migrate
 
         handle_migrate(args)
+    elif args.resource == "export":
+        from timeline_cli.commands.export import handle_export
+
+        handle_export(args)
+    elif args.resource == "export-all":
+        from timeline_cli.commands.export import handle_export_all
+
+        handle_export_all(args)
     else:
         action = getattr(args, "action", None)
         print(f"Command not implemented yet: {args.resource} {action or ''}")
