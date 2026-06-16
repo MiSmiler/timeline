@@ -32,6 +32,8 @@ def parse_markdown_file(md_path: Path) -> dict:
     lines = content.split("\n")
 
     current_section = None
+    last_event_idx = None  # Track last event for details
+    last_todo_idx = None   # Track last todo for details
     for line in lines:
         # Section headers
         if line.startswith("## Events"):
@@ -43,6 +45,21 @@ def parse_markdown_file(md_path: Path) -> dict:
         elif line.startswith("## Notes"):
             current_section = "notes"
             continue
+
+        # Parse indented details (4 spaces, possibly with "- " prefix)
+        if line.startswith("    ") and line.strip():
+            detail_text = line.strip()
+            # Remove "- " prefix if present
+            if detail_text.startswith("- "):
+                detail_text = detail_text[2:]
+
+            # Add to last event or todo
+            if current_section == "events" and last_event_idx is not None:
+                events[last_event_idx]["details"].append(detail_text)
+                continue
+            elif current_section == "todos" and last_todo_idx is not None:
+                todos[last_todo_idx]["details"].append(detail_text)
+                continue
 
         # Parse events
         if current_section == "events" and line.startswith("- "):
@@ -61,10 +78,12 @@ def parse_markdown_file(md_path: Path) -> dict:
                     "text": event_text,
                     "details": details,
                 })
+                last_event_idx = len(events) - 1
 
         # Parse todos
         if current_section == "todos" and line.startswith("- "):
             # Format: "- [ ] Description" or "- [x] Description" or "- [ ] ~~Description~~"
+            # Format: "- [ ] HH:MM Description" (time optional)
             # line[2:] is "[ ] Description" or "[x] Description"
             match = re.match(r"\[([ x])\] (.+)", line[2:])
             if match:
@@ -81,12 +100,21 @@ def parse_markdown_file(md_path: Path) -> dict:
                 else:
                     status = "pending"
 
+                # Check for time prefix (HH:MM)
+                time_match = re.match(r"(\d{2}:\d{2}) (.+)", text)
+                if time_match:
+                    todo_time = time_match.group(1)
+                    text = time_match.group(2)
+                else:
+                    todo_time = None
+
                 todos.append({
-                    "time": None,
+                    "time": todo_time,
                     "text": text,
                     "status": status,
                     "details": [],
                 })
+                last_todo_idx = len(todos) - 1
 
         # Parse notes (everything after ## Notes)
         if current_section == "notes" and line.strip():
