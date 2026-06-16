@@ -51,7 +51,10 @@ def _dispatch(args: argparse.Namespace) -> None:
             handle_todo_abandon,
             handle_todo_add,
             handle_todo_complete,
+            handle_todo_delete,
+            handle_todo_edit,
             handle_todo_list,
+            handle_todo_move,
         )
 
         if args.action == "add":
@@ -62,6 +65,12 @@ def _dispatch(args: argparse.Namespace) -> None:
             handle_todo_complete(args)
         elif args.action == "abandon":
             handle_todo_abandon(args)
+        elif args.action == "edit":
+            handle_todo_edit(args)
+        elif args.action == "move":
+            handle_todo_move(args)
+        elif args.action == "delete":
+            handle_todo_delete(args)
         else:
             print(f"Todo action not implemented: {args.action}")
             sys.exit(1)
