@@ -121,6 +121,10 @@ def _dispatch(args: argparse.Namespace) -> None:
         from timeline_cli.commands.export import handle_export_all
 
         handle_export_all(args)
+    elif args.resource == "doctor":
+        from timeline_cli.commands.doctor import handle_doctor
+
+        handle_doctor(args)
     else:
         action = getattr(args, "action", None)
         print(f"Command not implemented yet: {args.resource} {action or ''}")
