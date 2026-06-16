@@ -82,6 +82,10 @@ def _dispatch(args: argparse.Namespace) -> None:
         from timeline_cli.commands.list import handle_list
 
         handle_list(args)
+    elif args.resource == "migrate":
+        from timeline_cli.commands.migrate import handle_migrate
+
+        handle_migrate(args)
     else:
         action = getattr(args, "action", None)
         print(f"Command not implemented yet: {args.resource} {action or ''}")
