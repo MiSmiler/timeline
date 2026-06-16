@@ -66,6 +66,18 @@ def _dispatch(args: argparse.Namespace) -> None:
         else:
             print(f"Event action not implemented: {args.action}")
             sys.exit(1)
+    elif args.resource == "note":
+        from timeline_cli.commands.note import handle_note_add, handle_note_edit, handle_note_show
+
+        if args.action == "add":
+            handle_note_add(args)
+        elif args.action == "show":
+            handle_note_show(args)
+        elif args.action == "edit":
+            handle_note_edit(args)
+        else:
+            print(f"Note action not implemented: {args.action}")
+            sys.exit(1)
     else:
         print(f"Command not implemented yet: {args.resource} {args.action}")
         sys.exit(1)
