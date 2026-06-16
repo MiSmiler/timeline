@@ -1,9 +1,11 @@
 """Todo command implementations."""
 
+import sys
 
 from timeline_cli.models import Todo
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
+    find_todo_by_prefix,
     get_or_create_daily_record,
     read_timeline,
     write_timeline,
@@ -87,3 +89,47 @@ def handle_todo_list(args) -> None:
 def _sort_todos(todos: list[Todo]) -> None:
     """Sort todos by time (timed first, untimed last)."""
     todos.sort(key=lambda t: (t.time is None, t.time or ""))
+
+
+def handle_todo_complete(args) -> None:
+    """Handle todo complete command."""
+    timeline = read_timeline(DEFAULT_STORAGE_FILE)
+
+    if args.date not in timeline.records:
+        print(f"Error: No record found for {args.date}", file=sys.stderr)
+        sys.exit(1)
+
+    record = timeline.records[args.date]
+    result = find_todo_by_prefix(record, args.time, args.text_prefix)
+
+    if result is None:
+        print("Error: Todo not found or ambiguous", file=sys.stderr)
+        sys.exit(1)
+
+    idx, todo = result
+    todo.status = "completed"
+
+    write_timeline(timeline, DEFAULT_STORAGE_FILE)
+    print(f"Completed: {todo.text}")
+
+
+def handle_todo_abandon(args) -> None:
+    """Handle todo abandon command."""
+    timeline = read_timeline(DEFAULT_STORAGE_FILE)
+
+    if args.date not in timeline.records:
+        print(f"Error: No record found for {args.date}", file=sys.stderr)
+        sys.exit(1)
+
+    record = timeline.records[args.date]
+    result = find_todo_by_prefix(record, args.time, args.text_prefix)
+
+    if result is None:
+        print("Error: Todo not found or ambiguous", file=sys.stderr)
+        sys.exit(1)
+
+    idx, todo = result
+    todo.status = "abandoned"
+
+    write_timeline(timeline, DEFAULT_STORAGE_FILE)
+    print(f"Abandoned: {todo.text}")

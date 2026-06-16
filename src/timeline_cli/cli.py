@@ -47,12 +47,21 @@ def _dispatch(args: argparse.Namespace) -> None:
 
         handle_init()
     elif args.resource == "todo":
-        from timeline_cli.commands.todo import handle_todo_add, handle_todo_list
+        from timeline_cli.commands.todo import (
+            handle_todo_abandon,
+            handle_todo_add,
+            handle_todo_complete,
+            handle_todo_list,
+        )
 
         if args.action == "add":
             handle_todo_add(args)
         elif args.action == "list":
             handle_todo_list(args)
+        elif args.action == "complete":
+            handle_todo_complete(args)
+        elif args.action == "abandon":
+            handle_todo_abandon(args)
         else:
             print(f"Todo action not implemented: {args.action}")
             sys.exit(1)
