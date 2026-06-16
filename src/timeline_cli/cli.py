@@ -36,9 +36,19 @@ def main() -> None:
         parser.print_help()
         sys.exit(0)
 
-    # Dispatch to command handlers (to be implemented in #8)
-    print(f"Command not implemented yet: {args.resource} {args.action}")
-    sys.exit(1)
+    # Dispatch to command handlers
+    _dispatch(args)
+
+
+def _dispatch(args: argparse.Namespace) -> None:
+    """Dispatch to appropriate command handler."""
+    if args.resource == "init":
+        from timeline_cli.commands.init import handle_init
+
+        handle_init()
+    else:
+        print(f"Command not implemented yet: {args.resource} {args.action}")
+        sys.exit(1)
 
 
 def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
