@@ -56,6 +56,16 @@ def _dispatch(args: argparse.Namespace) -> None:
         else:
             print(f"Todo action not implemented: {args.action}")
             sys.exit(1)
+    elif args.resource == "event":
+        from timeline_cli.commands.event import handle_event_add, handle_event_list
+
+        if args.action == "add":
+            handle_event_add(args)
+        elif args.action == "list":
+            handle_event_list(args)
+        else:
+            print(f"Event action not implemented: {args.action}")
+            sys.exit(1)
     else:
         print(f"Command not implemented yet: {args.resource} {args.action}")
         sys.exit(1)
