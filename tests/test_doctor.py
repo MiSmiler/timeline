@@ -24,10 +24,7 @@ class TestDoctor:
         """Doctor fails for invalid JSON line."""
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
-            storage_file.write_text(
-                '{"schema_version": 1}\n'
-                '{"date": "2026-06-16", "todos": [invalid json}'
-            )
+            storage_file.write_text('{"schema_version": 1}\n{"date": "2026-06-16", "todos": [invalid json}')
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
             assert result.returncode != 0
@@ -37,9 +34,7 @@ class TestDoctor:
         """Doctor fails for missing schema_version header."""
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
-            storage_file.write_text(
-                '{"date": "2026-06-16", "todos": []}'
-            )
+            storage_file.write_text('{"date": "2026-06-16", "todos": []}')
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
             assert result.returncode != 0
@@ -49,10 +44,7 @@ class TestDoctor:
         """Doctor fails for invalid date format."""
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
-            storage_file.write_text(
-                '{"schema_version": 1}\n'
-                '{"date": "invalid-date", "todos": []}'
-            )
+            storage_file.write_text('{"schema_version": 1}\n{"date": "invalid-date", "todos": []}')
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
             assert result.returncode != 0
@@ -63,9 +55,7 @@ class TestDoctor:
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
             storage_file.write_text(
-                '{"schema_version": 1}\n'
-                '{"date": "2026-06-16", "todos": []}\n'
-                '{"date": "2026-06-16", "events": []}'
+                '{"schema_version": 1}\n{"date": "2026-06-16", "todos": []}\n{"date": "2026-06-16", "events": []}'
             )
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
@@ -77,8 +67,7 @@ class TestDoctor:
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
             storage_file.write_text(
-                '{"schema_version": 1}\n'
-                '{"date": "2026-06-16", "todos": [{"text": "task", "status": "invalid"}]}'
+                '{"schema_version": 1}\n{"date": "2026-06-16", "todos": [{"text": "task", "status": "invalid"}]}'
             )
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
@@ -121,8 +110,7 @@ class TestDoctor:
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
             storage_file.write_text(
-                '{"schema_version": 1}\n'
-                '{"date": "0000-00-00", "events": [{"time": "14:30", "text": "event"}]}'
+                '{"schema_version": 1}\n{"date": "0000-00-00", "events": [{"time": "14:30", "text": "event"}]}'
             )
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
@@ -132,10 +120,7 @@ class TestDoctor:
         """Doctor fails if 0000-00-00 has notes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_file = Path(tmpdir) / "timelines.jsonl"
-            storage_file.write_text(
-                '{"schema_version": 1}\n'
-                '{"date": "0000-00-00", "notes": "some notes"}'
-            )
+            storage_file.write_text('{"schema_version": 1}\n{"date": "0000-00-00", "notes": "some notes"}')
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
             assert result.returncode != 0

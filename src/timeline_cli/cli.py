@@ -142,6 +142,9 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
 
     # todo list
     list_parser = subparsers.add_parser("list", help="List todos")
+    list_parser.add_argument("--range", help="Date/time range (e.g., 'today', '..now', '2026-06-01..2026-06-30', '?')")
+    list_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
+    list_parser.add_argument("--contains", help="Filter by text substring")
     list_parser.add_argument("--date", help="Filter by date (YYYY-MM-DD)")
     list_parser.add_argument("--time", help="Filter by time (HH:MM)")
     list_parser.add_argument("--status", choices=["pending", "completed", "abandoned"], help="Filter by status")
@@ -199,7 +202,10 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
 
     # event list
     list_parser = subparsers.add_parser("list", help="List events")
-    list_parser.add_argument("date", help="Date in YYYY-MM-DD format")
+    list_parser.add_argument("--range", help="Date/time range (e.g., 'today', '2026-06-01..2026-06-30')")
+    list_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
+    list_parser.add_argument("--contains", help="Filter by text substring")
+    list_parser.add_argument("date", nargs="?", help="Date in YYYY-MM-DD format")
     list_parser.add_argument("--json", action="store_true", help="Output as JSON")
     list_parser.add_argument("--simple", action="store_true", help="Output as simple text")
 

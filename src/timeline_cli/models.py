@@ -11,15 +11,19 @@ class Todo:
     text: str
     status: str  # pending | completed | abandoned
     details: list[str] = field(default_factory=list)
+    id: str | None = None  # Unique identifier, schema v2
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "time": self.time,
             "text": self.text,
             "status": self.status,
             "details": self.details,
         }
+        if self.id is not None:
+            result["id"] = self.id
+        return result
 
     @classmethod
     def from_dict(cls, data: dict) -> "Todo":
@@ -29,6 +33,7 @@ class Todo:
             text=data["text"],
             status=data.get("status", "pending"),
             details=data.get("details", []),
+            id=data.get("id"),  # Optional for backward compatibility
         )
 
 
@@ -39,14 +44,18 @@ class Event:
     time: str  # HH:MM
     text: str
     details: list[str] = field(default_factory=list)
+    id: str | None = None  # Unique identifier, schema v2
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "time": self.time,
             "text": self.text,
             "details": self.details,
         }
+        if self.id is not None:
+            result["id"] = self.id
+        return result
 
     @classmethod
     def from_dict(cls, data: dict) -> "Event":
@@ -55,6 +64,7 @@ class Event:
             time=data["time"],
             text=data["text"],
             details=data.get("details", []),
+            id=data.get("id"),  # Optional for backward compatibility
         )
 
 

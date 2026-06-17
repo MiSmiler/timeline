@@ -27,10 +27,19 @@ def project_root():
 
 def run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
     """Run timeline-cli with given arguments via Python module."""
+    # Get project root and add src to PYTHONPATH
+    project_root = Path(__file__).parent.parent
+    src_path = project_root / "src"
+
+    # Set PYTHONPATH to include src directory
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(src_path)
+
     # Use python -m to run without needing pip install
     return subprocess.run(
         [sys.executable, "-m", "timeline_cli.cli"] + args,
         cwd=cwd,
         capture_output=True,
         text=True,
+        env=env,
     )

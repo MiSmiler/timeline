@@ -3,8 +3,12 @@
 import sys
 
 from timeline_cli.models import Event
+from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_events
+from timeline_cli.range_parser import filter_events_by_range, parse_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
+    collect_existing_ids,
+    ensure_unique_id,
     find_event_by_prefix,
     get_or_create_daily_record,
     read_timeline,
@@ -17,11 +21,16 @@ def handle_event_add(args) -> None:
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
     record = get_or_create_daily_record(timeline, args.date)
 
+    # Generate unique ID
+    existing_ids = collect_existing_ids(timeline)
+    event_id = ensure_unique_id(existing_ids, "e")
+
     # Create new event
     event = Event(
         time=args.time,
         text=args.text,
         details=args.detail or [],
+        id=event_id,
     )
 
     # Add to record and sort by time
@@ -30,44 +39,45 @@ def handle_event_add(args) -> None:
 
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Added event: {args.text} at {args.time}")
+    print(f"Added event [{event_id}]: {args.text} at {args.time}")
 
 
 def handle_event_list(args) -> None:
     """Handle event list command."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print("No events found")
-        return
-
-    record = timeline.records[args.date]
-    events = record.events
-
-    if args.json:
-        import json
-
-        data = [
-            {
-                "time": e.time,
-                "text": e.text,
-                "details": e.details,
-            }
-            for e in events
-        ]
-        print(json.dumps(data, indent=2))
-    elif args.simple:
-        for event in events:
-            print(f"{event.time} {event.text}")
+    # Use --range if provided
+    if hasattr(args, "range") and args.range:
+        date_range = parse_range(args.range)
+        events_with_dates = filter_events_by_range(timeline.records, date_range)
+        # Use --contains if provided
+        if hasattr(args, "contains") and args.contains:
+            events_with_dates = filter_by_contains(events_with_dates, args.contains)
     else:
-        # Default table format
-        if not events:
+        # Legacy: use positional date argument
+        if not args.date or args.date not in timeline.records:
             print("No events found")
             return
-        print(f"{'Time':<8} {'Text'}")
-        print("-" * 40)
-        for event in events:
-            print(f"{event.time:<8} {event.text}")
+        record = timeline.records[args.date]
+        events_with_dates = [(args.date, e) for e in record.events]
+
+        # Apply --contains filter if provided
+        if hasattr(args, "contains") and args.contains:
+            events_with_dates = filter_by_contains(events_with_dates, args.contains)
+
+    # Determine output format
+    # Legacy: --json or --simple override --output
+    if hasattr(args, "json") and args.json:
+        output_format = OutputFormat.JSON
+    elif hasattr(args, "simple") and args.simple:
+        output_format = OutputFormat.SIMPLE
+    elif hasattr(args, "output"):
+        output_format = OutputFormat(args.output)
+    else:
+        output_format = OutputFormat.TABLE
+
+    # Output
+    print(format_events(events_with_dates, output_format))
 
 
 def handle_event_edit(args) -> None:

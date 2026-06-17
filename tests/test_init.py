@@ -1,7 +1,6 @@
 """Tests for init command (#8)."""
 
 import json
-import os
 import tempfile
 from pathlib import Path
 

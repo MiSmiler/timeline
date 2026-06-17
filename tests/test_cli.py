@@ -1,7 +1,6 @@
 """Tests for CLI entry point (#7 skeleton tests)."""
 
 import subprocess
-import sys
 
 from conftest import run_cli
 

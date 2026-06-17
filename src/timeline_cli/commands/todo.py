@@ -3,8 +3,12 @@
 import sys
 
 from timeline_cli.models import Todo
+from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_todos
+from timeline_cli.range_parser import filter_todos_by_range, parse_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
+    collect_existing_ids,
+    ensure_unique_id,
     find_todo_by_prefix,
     get_or_create_daily_record,
     read_timeline,
@@ -17,12 +21,17 @@ def handle_todo_add(args) -> None:
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
     record = get_or_create_daily_record(timeline, args.date)
 
+    # Generate unique ID
+    existing_ids = collect_existing_ids(timeline)
+    todo_id = ensure_unique_id(existing_ids, "t")
+
     # Create new todo
     todo = Todo(
         time=args.time,
         text=args.text,
         status="pending",
         details=args.detail or [],
+        id=todo_id,
     )
 
     # Add to record and sort by time
@@ -31,7 +40,7 @@ def handle_todo_add(args) -> None:
 
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Added todo: {args.text}")
+    print(f"Added todo [{todo_id}]: {args.text}")
 
 
 def handle_todo_list(args) -> None:
@@ -40,50 +49,56 @@ def handle_todo_list(args) -> None:
 
     # Collect todos with their dates
     todos_with_dates = []
-    for date, record in timeline.records.items():
-        for todo in record.todos:
-            # Apply filters
-            if args.date and date != args.date:
-                continue
-            if args.time and todo.time != args.time:
-                continue
-            if args.status and todo.status != args.status:
-                continue
-            if args.text_prefix and not todo.text.startswith(args.text_prefix):
-                continue
 
-            todos_with_dates.append((date, todo))
+    # Use --range if provided
+    if hasattr(args, "range") and args.range:
+        date_range = parse_range(args.range)
+        todos_with_dates = filter_todos_by_range(timeline.records, date_range)
+
+        # Apply additional filters
+        if args.time:
+            todos_with_dates = [(d, t) for d, t in todos_with_dates if t.time == args.time]
+        if args.status:
+            todos_with_dates = [(d, t) for d, t in todos_with_dates if t.status == args.status]
+        # Use --contains if provided
+        if hasattr(args, "contains") and args.contains:
+            todos_with_dates = filter_by_contains(todos_with_dates, args.contains)
+        # Legacy: use text_prefix if provided
+        elif args.text_prefix:
+            todos_with_dates = [(d, t) for d, t in todos_with_dates if t.text.startswith(args.text_prefix)]
+    else:
+        # Legacy filter logic (--date, --overdue, --undated)
+        for date, record in timeline.records.items():
+            for todo in record.todos:
+                # Apply filters
+                if args.date and date != args.date:
+                    continue
+                if args.time and todo.time != args.time:
+                    continue
+                if args.status and todo.status != args.status:
+                    continue
+                if args.text_prefix and not todo.text.startswith(args.text_prefix):
+                    continue
+
+                todos_with_dates.append((date, todo))
+
+        # Apply --contains filter if provided
+        if hasattr(args, "contains") and args.contains:
+            todos_with_dates = filter_by_contains(todos_with_dates, args.contains)
+
+    # Determine output format
+    # Legacy: --json or --simple override --output
+    if hasattr(args, "json") and args.json:
+        output_format = OutputFormat.JSON
+    elif hasattr(args, "simple") and args.simple:
+        output_format = OutputFormat.SIMPLE
+    elif hasattr(args, "output"):
+        output_format = OutputFormat(args.output)
+    else:
+        output_format = OutputFormat.TABLE
 
     # Output
-    if args.json:
-        import json
-
-        data = [
-            {
-                "date": date,
-                "time": todo.time,
-                "text": todo.text,
-                "status": todo.status,
-                "details": todo.details,
-            }
-            for date, todo in todos_with_dates
-        ]
-        print(json.dumps(data, indent=2))
-    elif args.simple:
-        for date, todo in todos_with_dates:
-            time_str = todo.time or "undated"
-            status_str = f"[{todo.status}]"
-            print(f"{date} {time_str} {status_str} {todo.text}")
-    else:
-        # Default table format
-        if not todos_with_dates:
-            print("No todos found")
-            return
-        print(f"{'Date':<12} {'Time':<8} {'Status':<10} {'Text'}")
-        print("-" * 50)
-        for date, todo in todos_with_dates:
-            time_str = todo.time or "-"
-            print(f"{date:<12} {time_str:<8} {todo.status:<10} {todo.text}")
+    print(format_todos(todos_with_dates, output_format))
 
 
 def _sort_todos(todos: list[Todo]) -> None:
