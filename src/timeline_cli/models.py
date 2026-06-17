@@ -108,9 +108,9 @@ class Timeline:
         """Convert to list of JSON lines for storage."""
         import json
 
-        lines = [json.dumps({"schema_version": self.schema_version})]
+        lines = [json.dumps({"schema_version": self.schema_version}, ensure_ascii=False)]
         for record in self.records.values():
-            lines.append(json.dumps(record.to_dict()))
+            lines.append(json.dumps(record.to_dict(), ensure_ascii=False))
         return lines
 
     @classmethod

@@ -231,7 +231,7 @@ def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
 
     # list
     list_parser = subparsers.add_parser("list", help="List all dates")
-    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    list_parser.add_argument("--output", choices=["table", "json"], default="table", help="Output format")
 
     # export
     export_parser = subparsers.add_parser("export", help="Export a date as markdown")

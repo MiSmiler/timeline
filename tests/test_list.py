@@ -25,12 +25,12 @@ class TestListCommand:
             assert "0000-00-00" in result.stdout
 
     def test_list_json_output(self):
-        """List --json outputs JSON."""
+        """List --output json outputs JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            result = run_cli(["list", "--json"], cwd=Path(tmpdir))
+            result = run_cli(["list", "--output", "json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             data = json.loads(result.stdout)

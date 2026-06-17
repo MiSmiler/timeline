@@ -23,8 +23,164 @@ class TestMigrateCommand:
             run_cli(["init"], cwd=Path(tmpdir))
 
             result = run_cli(["migrate", "--to", "1"], cwd=Path(tmpdir))
-            assert result.returncode != 0
-            assert "Already" in result.stderr or "already" in result.stderr.lower()
+            assert result.returncode == 0
+            assert "Already" in result.stdout or "already" in result.stdout.lower()
+
+
+class TestMigrateV2:
+    """Tests for migrate --to 2 (Issue #47)."""
+
+    def test_migrate_v2_assigns_ids(self):
+        """Migrate to v2 assigns IDs to todos and events without IDs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create a v1 timeline file with items without IDs
+            storage_file = tmpdir_path / "timelines.jsonl"
+            lines = [
+                json.dumps({"schema_version": 1}),
+                json.dumps({
+                    "date": "2026-06-16",
+                    "todos": [
+                        {"time": "09:00", "text": "Task 1", "status": "pending", "details": []},
+                        {"time": None, "text": "Task 2", "status": "pending", "details": []},
+                    ],
+                    "events": [{"time": "10:00", "text": "Meeting", "details": []}],
+                    "notes": None,
+                }),
+                json.dumps({
+                    "date": "2026-06-17",
+                    "todos": [{"time": "14:00", "text": "Task 3", "status": "completed", "details": []}],
+                    "events": [],
+                    "notes": None,
+                }),
+            ]
+            storage_file.write_text("\n".join(lines) + "\n")
+
+            # Run migration
+            result = run_cli(["migrate", "--to", "2"], cwd=tmpdir_path)
+
+            assert result.returncode == 0
+            assert "Migrated 4 items" in result.stdout
+
+            # Verify file content
+            content = storage_file.read_text().strip().split("\n")
+            header = json.loads(content[0])
+            assert header["schema_version"] == 2
+
+            record1 = json.loads(content[1])
+            assert len(record1["todos"]) == 2
+            assert record1["todos"][0]["id"].startswith("t")
+            assert len(record1["todos"][0]["id"]) == 6  # t + 5 chars
+            assert record1["todos"][1]["id"].startswith("t")
+            assert len(record1["events"]) == 1
+            assert record1["events"][0]["id"].startswith("e")
+            assert len(record1["events"][0]["id"]) == 6
+
+            record2 = json.loads(content[2])
+            assert len(record2["todos"]) == 1
+            assert record2["todos"][0]["id"].startswith("t")
+
+    def test_migrate_v2_preserves_existing_ids(self):
+        """Migrate to v2 preserves existing IDs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create a v1 timeline file with some items already having IDs
+            storage_file = tmpdir_path / "timelines.jsonl"
+            lines = [
+                json.dumps({"schema_version": 1}),
+                json.dumps({
+                    "date": "2026-06-16",
+                    "todos": [{"time": "09:00", "text": "Task 1", "status": "pending", "details": [], "id": "tcustom"}],
+                    "events": [{"time": "10:00", "text": "Meeting", "details": []}],
+                    "notes": None,
+                }),
+            ]
+            storage_file.write_text("\n".join(lines) + "\n")
+
+            # Run migration
+            result = run_cli(["migrate", "--to", "2"], cwd=tmpdir_path)
+
+            assert result.returncode == 0
+            assert "Migrated 1 items" in result.stdout
+
+            # Verify file content
+            content = storage_file.read_text().strip().split("\n")
+            record = json.loads(content[1])
+            assert record["todos"][0]["id"] == "tcustom"  # Preserved
+            assert record["events"][0]["id"].startswith("e")  # Assigned
+
+    def test_migrate_v2_utf8_encoding(self):
+        """Migrate to v2 writes UTF-8 encoded output."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create a v1 timeline file with Chinese characters
+            storage_file = tmpdir_path / "timelines.jsonl"
+            lines = [
+                json.dumps({"schema_version": 1}),
+                json.dumps({
+                    "date": "2026-06-16",
+                    "todos": [{"time": "09:00", "text": "测试任务", "status": "pending", "details": ["详情信息"]}],
+                    "events": [{"time": "10:00", "text": "会议", "details": ["讨论项目"]}],
+                    "notes": "今天天气不错",
+                }),
+            ]
+            storage_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            # Run migration
+            result = run_cli(["migrate", "--to", "2"], cwd=tmpdir_path)
+
+            assert result.returncode == 0
+
+            # Verify UTF-8 encoding (no escaped unicode)
+            content = storage_file.read_text(encoding="utf-8")
+            assert "测试任务" in content
+            assert "详情信息" in content
+            assert "会议" in content
+            assert "讨论项目" in content
+            assert "今天天气不错" in content
+            # Ensure no unicode escapes like \u
+            assert "\\u" not in content
+
+    def test_migrate_v2_idempotent(self):
+        """Migrate to v2 is idempotent."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create a v1 timeline file
+            storage_file = tmpdir_path / "timelines.jsonl"
+            lines = [
+                json.dumps({"schema_version": 1}),
+                json.dumps({
+                    "date": "2026-06-16",
+                    "todos": [{"time": "09:00", "text": "Task", "status": "pending", "details": []}],
+                    "events": [],
+                    "notes": None,
+                }),
+            ]
+            storage_file.write_text("\n".join(lines) + "\n")
+
+            # Run migration first time
+            result1 = run_cli(["migrate", "--to", "2"], cwd=tmpdir_path)
+            assert result1.returncode == 0
+
+            # Read the assigned ID
+            content1 = storage_file.read_text().strip().split("\n")
+            record1 = json.loads(content1[1])
+            todo_id1 = record1["todos"][0]["id"]
+
+            # Run migration again
+            result2 = run_cli(["migrate", "--to", "2"], cwd=tmpdir_path)
+            assert result2.returncode == 0
+            assert "Already at schema version 2" in result2.stdout
+
+            # Verify ID didn't change
+            content2 = storage_file.read_text().strip().split("\n")
+            record2 = json.loads(content2[1])
+            todo_id2 = record2["todos"][0]["id"]
+            assert todo_id1 == todo_id2
 
 
 class TestMigrateFromMarkdown:

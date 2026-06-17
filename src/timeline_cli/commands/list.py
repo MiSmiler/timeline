@@ -11,7 +11,7 @@ def handle_list(args) -> None:
 
     dates = sorted(timeline.records.keys())
 
-    if args.json:
+    if args.output == "json":
         print(json.dumps(dates))
     else:
         if not dates:
