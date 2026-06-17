@@ -5,7 +5,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from conftest import run_cli
+from conftest import read_items_by_date, run_cli
 
 
 class TestTodoEdit:
@@ -29,10 +29,9 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["text"] == "new task"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["text"] == "new task"
 
     def test_todo_edit_new_time(self):
         """Todo edit --new-time updates time."""
@@ -52,10 +51,9 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["time"] == "14:00"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["time"] == "14:00"
 
     def test_todo_edit_append_detail(self):
         """Todo edit --append-detail adds detail."""
@@ -75,10 +73,9 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert "extra info" in record["todos"][0]["details"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert "extra info" in items["todos"][0]["details"]
 
     def test_todo_edit_set_detail(self):
         """Todo edit --set-detail replaces all details."""
@@ -98,10 +95,9 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["details"] == ["new 1", "new 2"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["details"] == ["new 1", "new 2"]
 
 
 class TestTodoDelete:
@@ -126,10 +122,9 @@ class TestTodoDelete:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert len(record["todos"]) == 0
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["todos"]) == 0
 
     def test_todo_delete_not_found(self):
         """Todo delete fails if ID not found."""

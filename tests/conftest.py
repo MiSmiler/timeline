@@ -1,5 +1,6 @@
 """Test fixtures for timeline-cli tests."""
 
+import json
 import os
 import subprocess
 import sys
@@ -43,3 +44,44 @@ def run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
         text=True,
         env=env,
     )
+
+
+def read_items_from_storage(storage_file: Path) -> dict[str, list[dict]]:
+    """Read items from .timelines.jsonl and group by type.
+
+    Returns dict with keys: 'events', 'todos', 'notes'.
+    Each value is a list of items (dict).
+    """
+    content = storage_file.read_text().strip().split("\n")
+
+    items_by_type: dict[str, list[dict]] = {"events": [], "todos": [], "notes": []}
+
+    for line in content[1:]:  # Skip header
+        if line.strip():
+            item = json.loads(line)
+            item_type = item.get("type")
+            if item_type == "event":
+                items_by_type["events"].append(item)
+            elif item_type == "todo":
+                items_by_type["todos"].append(item)
+            elif item_type == "note":
+                items_by_type["notes"].append(item)
+
+    return items_by_type
+
+
+def read_items_by_date(storage_file: Path, date: str) -> dict[str, list[dict]]:
+    """Read items from .timelines.jsonl and group by type for a specific date.
+
+    Returns dict with keys: 'events', 'todos', 'notes'.
+    Each value is a list of items (dict) matching the date.
+    """
+    items_by_type = read_items_from_storage(storage_file)
+
+    result: dict[str, list[dict]] = {"events": [], "todos": [], "notes": []}
+    for type_key, items in items_by_type.items():
+        for item in items:
+            if item.get("date") == date:
+                result[type_key].append(item)
+
+    return result

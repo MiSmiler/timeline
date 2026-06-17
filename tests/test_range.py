@@ -16,8 +16,8 @@ class TestRangeParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             # Add todo for today and yesterday (new API)
-            run_cli(["todo", "add", "today task", "--date", "2026-06-17"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "yesterday task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "today task", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "yesterday task", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range today
             result = run_cli(["todo", "list", "--range", "today"], cwd=Path(tmpdir))

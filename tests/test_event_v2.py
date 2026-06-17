@@ -5,7 +5,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from conftest import run_cli
+from conftest import read_items_by_date, run_cli
 
 
 class TestEventAddV2:
@@ -23,14 +23,12 @@ class TestEventAddV2:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-
-            record = json.loads(content[1])
-            assert record["date"] == "2026-06-16"
-            assert len(record["events"]) == 1
-            assert record["events"][0]["text"] == "meeting"
-            assert record["events"][0]["time"] == "14:30"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["events"]) == 1
+            assert items["events"][0]["text"] == "meeting"
+            assert items["events"][0]["time"] == "14:30"
+            assert items["events"][0]["date"] == "2026-06-16"
 
     def test_event_add_with_detail(self):
         """Event add with --detail parameter."""
@@ -43,10 +41,9 @@ class TestEventAddV2:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["details"] == ["discussed project"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["details"] == ["discussed project"]
 
     def test_event_add_multiple_details(self):
         """Event add with multiple --detail parameters."""
@@ -71,10 +68,9 @@ class TestEventAddV2:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["details"] == ["item 1", "item 2"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["details"] == ["item 1", "item 2"]
 
     def test_event_add_requires_time(self):
         """Event add should fail without --time."""
@@ -190,10 +186,9 @@ class TestEventEditV2:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["text"] == "new meeting"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["text"] == "new meeting"
 
     def test_event_edit_new_time(self):
         """Event edit --new-time updates time."""
@@ -216,10 +211,9 @@ class TestEventEditV2:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["time"] == "10:00"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["time"] == "10:00"
 
     def test_event_edit_append_detail(self):
         """Event edit --append-detail adds detail."""
@@ -242,10 +236,9 @@ class TestEventEditV2:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert "extra info" in record["events"][0]["details"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert "extra info" in items["events"][0]["details"]
 
     def test_event_edit_output_parameter(self):
         """Event edit should support --output parameter."""
@@ -303,10 +296,9 @@ class TestEventDeleteV2:
             result = run_cli(["event", "delete", "--id", event_id, "--yes"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert len(record["events"]) == 0
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["events"]) == 0
 
     def test_event_delete_not_found(self):
         """Event delete fails if ID not found."""

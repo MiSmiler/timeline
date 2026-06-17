@@ -223,7 +223,7 @@ def _setup_note_commands(subparsers: argparse._SubParsersAction) -> None:
 def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
     """Setup other command parsers."""
     # init
-    subparsers.add_parser("init", help="Initialize timelines.jsonl")
+    subparsers.add_parser("init", help="Initialize .timelines.jsonl")
 
     # list
     list_parser = subparsers.add_parser("list", help="List all dates")

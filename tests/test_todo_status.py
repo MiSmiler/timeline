@@ -5,7 +5,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from conftest import run_cli
+from conftest import read_items_by_date, run_cli
 
 
 class TestTodoComplete:
@@ -26,10 +26,9 @@ class TestTodoComplete:
             result = run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["status"] == "completed"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["status"] == "completed"
 
     def test_todo_complete_not_found(self):
         """Todo complete fails if ID not found."""
@@ -58,10 +57,9 @@ class TestTodoAbandon:
             result = run_cli(["todo", "abandon", "--id", todo_id], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["status"] == "abandoned"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["status"] == "abandoned"
 
     def test_todo_abandon_not_found(self):
         """Todo abandon fails if ID not found."""

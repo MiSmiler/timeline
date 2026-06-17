@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from conftest import run_cli
+from conftest import read_items_by_date, run_cli
 
 
 class TestEventAdd:
@@ -21,15 +21,14 @@ class TestEventAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
             content = storage_file.read_text().strip().split("\n")
-            assert len(content) == 2
+            assert len(content) == 2  # header + one event
 
-            record = json.loads(content[1])
-            assert record["date"] == "2026-06-16"
-            assert len(record["events"]) == 1
-            assert record["events"][0]["time"] == "14:30"
-            assert record["events"][0]["text"] == "meeting"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["events"]) == 1
+            assert items["events"][0]["time"] == "14:30"
+            assert items["events"][0]["text"] == "meeting"
 
     def test_event_add_with_detail(self):
         """Event add with --detail parameter."""
@@ -52,10 +51,9 @@ class TestEventAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["details"] == ["discussed project"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["details"] == ["discussed project"]
 
     def test_event_add_multiple_details(self):
         """Event add with multiple --detail parameters."""
@@ -80,10 +78,9 @@ class TestEventAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["details"] == ["item 1", "item 2"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["details"] == ["item 1", "item 2"]
 
     def test_event_add_to_existing_date(self):
         """Adding event to existing date appends and sorts."""
@@ -92,13 +89,12 @@ class TestEventAdd:
             run_cli(["event", "add", "morning", "--date", "2026-06-16", "--time", "10:00"], cwd=Path(tmpdir))
             run_cli(["event", "add", "afternoon", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert len(record["events"]) == 2
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["events"]) == 2
             # Should be sorted by time
-            assert record["events"][0]["time"] == "10:00"
-            assert record["events"][1]["time"] == "14:30"
+            assert items["events"][0]["time"] == "10:00"
+            assert items["events"][1]["time"] == "14:30"
 
     def test_event_add_requires_time(self):
         """Event add should fail without --time."""

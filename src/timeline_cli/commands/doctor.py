@@ -29,84 +29,111 @@ def handle_doctor(args) -> None:
     except json.JSONDecodeError:
         errors.append("Invalid JSON in header line")
 
-    # Track dates for duplicate check
-    seen_dates = set()
+    # Track items by date for validation
+    items_by_date: dict[str | None, dict[str, list]] = {}
+    seen_ids = set()
 
-    # Check each record line
+    # Check each item line
     for i, line in enumerate(lines[1:], start=1):
         if not line.strip():
             continue
 
         try:
-            record = json.loads(line)
+            item = json.loads(line)
         except json.JSONDecodeError:
             errors.append(f"Line {i}: Invalid JSON")
             continue
 
-        # Validate date
-        date = record.get("date")
-        if not date:
-            errors.append(f"Line {i}: Missing date")
+        # Validate type field
+        item_type = item.get("type")
+        if item_type not in ["event", "todo", "note"]:
+            errors.append(f"Line {i}: Invalid or missing type '{item_type}'")
             continue
 
-        if not re.match(r"\d{4}-\d{2}-\d{2}$", date) and date != "0000-00-00":
-            errors.append(f"Line {i}: Invalid date format '{date}'")
+        # Validate date
+        date = item.get("date")
+        if date is not None:
+            if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
+                errors.append(f"Line {i}: Invalid date format '{date}'")
 
-        if date in seen_dates:
-            errors.append(f"Line {i}: Duplicate date '{date}'")
-        seen_dates.add(date)
+        # Track items by date
+        date_key = date if date is not None else "null"
+        if date_key not in items_by_date:
+            items_by_date[date_key] = {"events": [], "todos": [], "notes": []}
+        # Map item_type to the correct key in items_by_date
+        type_key_map = {"event": "events", "todo": "todos", "note": "notes"}
+        items_by_date[date_key][type_key_map[item_type]].append(item)
 
-        # Validate events
-        for j, event in enumerate(record.get("events", [])):
-            if not event.get("time"):
-                errors.append(f"Line {i}, Event {j}: Missing time")
-            elif not re.match(r"\d{2}:\d{2}$", event.get("time", "")):
-                errors.append(f"Line {i}, Event {j}: Invalid time format")
-            if not event.get("text"):
-                errors.append(f"Line {i}, Event {j}: Missing text")
+        # Type-specific validation
+        if item_type == "event":
+            if not item.get("time"):
+                errors.append(f"Line {i}: Event missing time")
+            elif not re.match(r"\d{2}:\d{2}$", item.get("time", "")):
+                errors.append(f"Line {i}: Invalid time format")
+            if not item.get("text"):
+                errors.append(f"Line {i}: Event missing text")
+            if date is None:
+                errors.append(f"Line {i}: Event must have date")
 
-        # Validate todos
-        for j, todo in enumerate(record.get("todos", [])):
-            status = todo.get("status")
+        elif item_type == "todo":
+            status = item.get("status")
             if status not in ["pending", "completed", "abandoned"]:
-                errors.append(f"Line {i}, Todo {j}: Invalid status '{status}'")
-            if not todo.get("text"):
-                errors.append(f"Line {i}, Todo {j}: Missing text")
-            # 0000-00-00 todos should not have time
-            if date == "0000-00-00" and todo.get("time"):
-                errors.append(f"Line {i}, Todo {j}: Undated todo should not have time")
+                errors.append(f"Line {i}: Invalid status '{status}'")
+            if not item.get("text"):
+                errors.append(f"Line {i}: Todo missing text")
+            # Undated todo check
+            if date is None and item.get("time"):
+                errors.append(f"Line {i}: Undated todo should not have time")
 
-        # 0000-00-00 constraints
-        if date == "0000-00-00":
-            if record.get("events"):
-                errors.append(f"Line {i}: Undated record should not have events")
-            if record.get("notes"):
-                errors.append(f"Line {i}: Undated record should not have notes")
+        elif item_type == "note":
+            if not item.get("text"):
+                errors.append(f"Line {i}: Note missing text")
+            if date is None:
+                errors.append(f"Line {i}: Note must have date")
 
-        # Check sorting (can be fixed)
-        events = record.get("events", [])
+        # Check ID uniqueness
+        item_id = item.get("id")
+        if item_id:
+            if item_id in seen_ids:
+                errors.append(f"Line {i}: Duplicate ID '{item_id}'")
+            seen_ids.add(item_id)
+
+    # Check sorting for each date (can be fixed)
+    for date, items in items_by_date.items():
+        # Check event sorting by time
+        events = items["events"]
         sorted_events = sorted(events, key=lambda e: e.get("time", ""))
         if events != sorted_events:
             if args.fix:
-                fixes.append(f"Line {i}: Fixed event sorting")
-                record["events"] = sorted_events
-                lines[i] = json.dumps(record)
+                # Need to rewrite lines in sorted order
+                fixes.append(f"Date {date}: Fixed event sorting")
             else:
-                errors.append(f"Line {i}: Events not sorted by time")
+                errors.append(f"Date {date}: Events not sorted by time")
 
-        todos = record.get("todos", [])
+        # Check todo sorting by time
+        todos = items["todos"]
         sorted_todos = sorted(todos, key=lambda t: (t.get("time") is None, t.get("time") or ""))
         if todos != sorted_todos:
             if args.fix:
-                fixes.append(f"Line {i}: Fixed todo sorting")
-                record["todos"] = sorted_todos
-                lines[i] = json.dumps(record)
+                fixes.append(f"Date {date}: Fixed todo sorting")
             else:
-                errors.append(f"Line {i}: Todos not sorted by time")
+                errors.append(f"Date {date}: Todos not sorted by time")
 
-    # Apply fixes if requested
+        # Check note uniqueness (one per date)
+        if len(items["notes"]) > 1:
+            errors.append(f"Date {date}: Multiple notes (only one allowed)")
+
+    # Apply fixes if requested (requires rewriting entire file in sorted order)
     if args.fix and fixes:
-        path.write_text("\n".join(lines) + "\n")
+        # Rebuild file in proper sorted order
+        from timeline_cli.models import Timeline
+
+        # Read current timeline (it will handle the new format)
+        timeline = Timeline.from_lines(lines)
+        # Write it back (to_lines will sort properly)
+        new_lines = timeline.to_lines()
+        path.write_text("\n".join(new_lines) + "\n")
+
         for fix in fixes:
             print(f"Fixed: {fix}")
 

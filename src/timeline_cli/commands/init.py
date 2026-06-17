@@ -8,7 +8,7 @@ from timeline_cli.storage import DEFAULT_STORAGE_FILE, write_timeline
 
 
 def handle_init() -> None:
-    """Initialize a new timelines.jsonl file."""
+    """Initialize a new .timelines.jsonl file."""
     path = Path(DEFAULT_STORAGE_FILE)
 
     if path.exists():

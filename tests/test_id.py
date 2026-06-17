@@ -5,7 +5,7 @@ import string
 import tempfile
 from pathlib import Path
 
-from conftest import run_cli
+from conftest import read_items_by_date, run_cli
 
 
 class TestIDGeneration:
@@ -26,10 +26,9 @@ class TestIDGeneration:
             assert "]" in result.stdout
 
             # Verify ID in storage
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            todo = record["todos"][0]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            todo = items["todos"][0]
 
             # ID should exist and have correct format
             assert "id" in todo
@@ -54,10 +53,9 @@ class TestIDGeneration:
             assert "]" in result.stdout
 
             # Verify ID in storage
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            event = record["events"][0]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            event = items["events"][0]
 
             # ID should exist and have correct format
             assert "id" in event
@@ -76,14 +74,13 @@ class TestIDGeneration:
             run_cli(["todo", "add", "task 3", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # Verify IDs are unique
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            from conftest import read_items_from_storage
+            items = read_items_from_storage(storage_file)
 
             ids = []
-            for line in content[1:]:
-                record = json.loads(line)
-                for todo in record["todos"]:
-                    ids.append(todo["id"])
+            for todo in items["todos"]:
+                ids.append(todo["id"])
 
             assert len(ids) == 3
             assert len(set(ids)) == 3  # All unique
@@ -148,7 +145,7 @@ class TestBackwardCompatibility:
         """Should read v1 data (no id field) without error."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create v1 data manually (no id field)
-            storage_file = Path(tmpdir) / "timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
             content = [
                 json.dumps({"schema_version": 1}),
                 json.dumps(
@@ -178,7 +175,7 @@ class TestBackwardCompatibility:
         """List command should work even when items have no ID."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create v1 data manually
-            storage_file = Path(tmpdir) / "timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
             content = [
                 json.dumps({"schema_version": 1}),
                 json.dumps(
@@ -214,10 +211,9 @@ class TestIDFormat:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["id"].startswith("t")
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["id"].startswith("t")
 
     def test_event_id_prefix(self):
         """Event ID should start with 'e'."""
@@ -228,10 +224,9 @@ class TestIDFormat:
                 cwd=Path(tmpdir),
             )
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["events"][0]["id"].startswith("e")
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["id"].startswith("e")
 
     def test_id_charset(self):
         """ID should only use lowercase letters and digits."""
@@ -239,10 +234,9 @@ class TestIDFormat:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            todo_id = record["todos"][0]["id"]
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            todo_id = items["todos"][0]["id"]
 
             # Check format: 't' followed by 5 lowercase/digits
             random_part = todo_id[1:]  # Skip prefix

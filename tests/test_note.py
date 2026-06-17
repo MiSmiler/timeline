@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from conftest import run_cli
+from conftest import read_items_by_date, run_cli
 
 
 class TestNoteAdd:
@@ -18,10 +18,10 @@ class TestNoteAdd:
             result = run_cli(["note", "add", "2026-06-16", "Today was productive"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["notes"] == "Today was productive"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["notes"]) == 1
+            assert items["notes"][0]["text"] == "Today was productive"
 
     def test_note_add_to_existing_date(self):
         """Adding note to date with existing todos/events."""
@@ -30,11 +30,11 @@ class TestNoteAdd:
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-16", "good day"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert len(record["todos"]) == 1
-            assert record["notes"] == "good day"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["todos"]) == 1
+            assert len(items["notes"]) == 1
+            assert items["notes"][0]["text"] == "good day"
 
     def test_note_add_replaces_existing(self):
         """Note add replaces existing note (one note per date)."""
@@ -43,10 +43,10 @@ class TestNoteAdd:
             run_cli(["note", "add", "2026-06-16", "first note"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-16", "second note"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["notes"] == "second note"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items["notes"]) == 1
+            assert items["notes"][0]["text"] == "second note"
 
 
 class TestNoteShow:
@@ -92,10 +92,9 @@ class TestNoteEdit:
             result = run_cli(["note", "edit", "2026-06-16", "new thought"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["notes"] == "new thought"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["notes"][0]["text"] == "new thought"
 
     def test_note_edit_creates_if_not_exist(self):
         """Note edit creates note if doesn't exist."""
@@ -105,7 +104,6 @@ class TestNoteEdit:
             result = run_cli(["note", "edit", "2026-06-16", "created note"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["notes"] == "created note"
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["notes"][0]["text"] == "created note"

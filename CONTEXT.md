@@ -19,14 +19,18 @@ _Avoid_: Memo, thought
 ## Storage
 
 **Storage File**:
-Single `timelines.jsonl` file in project directory. Created by `timeline-cli init`. Contains schema version header and all records. This is the ONLY source of truth—users and agents must NOT edit it directly; always use timeline-cli.
+Single `.timelines.jsonl` file in project directory (hidden file). Created by `timeline-cli init`. Contains schema version header and one item per line. This is the ONLY source of truth—users and agents must NOT edit it directly; always use timeline-cli.
 _Avoid_: Data file, database
 
 **Schema Version**:
 Integer in file header (`{"schema_version": 1}`). Currently always 1. The `id` field for Todo/Event is part of v1 schema from the start.
 
+**Item**:
+One line in `.timelines.jsonl` representing a single Todo, Event, or Note. Each item has a `type` field (`"event"`, `"todo"`, or `"note"`) and all its properties. Items are sorted by `(date, type, time)` where type order is: event < todo < note. Undated Todos have `date: null` and sort last.
+_Avoid_: Entry, record, row
+
 **Daily Record**:
-One line in `timelines.jsonl` representing a single day. Keyed by `YYYY-MM-DD`. Contains events, todos, and notes arrays.
+Logical grouping of items by date in memory. Contains events, todos, and notes arrays. Not a storage unit—items are stored as separate lines and reconstructed into Daily Records when loaded.
 
 **Undated Record**:
 Special record keyed by `0000-00-00`. Only contains Todos without time. Not allowed to have Events or Notes.
