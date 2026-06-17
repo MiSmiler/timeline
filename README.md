@@ -1,17 +1,43 @@
-# timeline
+# Timeline CLI
 
-Timeline 工具的开发仓库。Timeline 是一个基于 markdown 文件的待办/事件管理工具，以 Hermes Agent skill 形式交付。
+基于 jsonline 存储的待办/事件/笔记管理工具。
 
-## 包含 Skills
+## 安装
 
-| Skill | 说明 | 触发词 |
-|-------|------|--------|
-| timeline | 数据格式层 skill，定义 markdown 文件结构和完整性约束 | （用户习惯层定义在 AGENTS.md） |
+```bash
+# 推荐：全局安装（隔离环境）
+uv tool install .
 
-## 用户使用流程
+# 或开发模式安装
+uv sync
+uv pip install -e .
+```
 
-直接通过自然语言触发 `timeline` skill 管理待办和事件。
+## 使用
+
+```bash
+timeline-cli --help
+timeline-cli todo add 2026-06-17 "完成报告"
+timeline-cli todo list 2026-06-17
+```
 
 ## 开发
 
-详见 [AGENTS.md](AGENTS.md)。
+```bash
+# 安装依赖
+uv sync
+
+# 运行 CLI
+uv run timeline-cli --help
+
+# 格式化
+uv run ruff format
+
+# 检查
+uv run ruff check
+
+# 测试
+uv run pytest
+```
+
+详细说明见 [AGENTS.md](AGENTS.md)。

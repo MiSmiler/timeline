@@ -1,28 +1,32 @@
-# Timeline 工具开发
+# Timeline CLI 开发
 
-Timeline 是一个基于 markdown 文件的待办/事件管理工具，以 Hermes Agent skill 形式交付。
+Timeline CLI 是一个基于 jsonline 存储的待办/事件/笔记管理工具，以 Python CLI 形式交付。
 
-## 测试
+## 工具链
 
-在本地验证脚本行为：
+本项目使用以下工具链：
+
+- **包管理**: [uv](https://docs.astral.sh/uv/) - 快速的 Python 包管理器
+- **格式化/检查**: [ruff](https://docs.astral.sh/ruff/) - 极速 Python linter 和 formatter
+
+## 常用命令
 
 ```bash
-# 验证数据一致性
-python3 skills/timeline/scripts/validate.py
+# 安装依赖
+uv sync
 
-# 列出所有未完成待办
-python3 skills/timeline/scripts/todo_list.py
+# 运行 CLI
+uv run timeline-cli --help
 
-# 按时间提取（不传参数用当前时间）
-python3 skills/timeline/scripts/todo_by_time.py
+# 格式化代码
+uv run ruff format
 
-# 提取过期 + 无时间待办
-python3 skills/timeline/scripts/todo_overdue.py
+# 代码检查
+uv run ruff check
+
+# 运行测试（测试通过 CLI 入口点，参见 issue #6）
+uv run pytest
 ```
-
-## 用户使用
-
-本项目的 skills 目录通过 Hermes 的 `external_dirs` 注册到用户 profile。用户通过自然语言触发 `timeline` skill 使用。
 
 ## Agent skills
 
