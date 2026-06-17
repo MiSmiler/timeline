@@ -1,4 +1,4 @@
-"""Tests for event commands (#10)."""
+"""Tests for event commands (Issue #46 refactored)."""
 
 import json
 import tempfile
@@ -8,7 +8,7 @@ from conftest import run_cli
 
 
 class TestEventAdd:
-    """Tests for event add command."""
+    """Tests for event add command (new API: TEXT --date DATE --time TIME)."""
 
     def test_event_add_creates_entry(self):
         """Tracer bullet: timeline-cli event add creates an event."""
@@ -16,7 +16,7 @@ class TestEventAdd:
             run_cli(["init"], cwd=Path(tmpdir))
 
             result = run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -40,12 +40,13 @@ class TestEventAdd:
                 [
                     "event",
                     "add",
+                    "meeting",
+                    "--date",
                     "2026-06-16",
                     "--time",
                     "14:30",
                     "--detail",
                     "discussed project",
-                    "meeting",
                 ],
                 cwd=Path(tmpdir),
             )
@@ -65,6 +66,8 @@ class TestEventAdd:
                 [
                     "event",
                     "add",
+                    "meeting",
+                    "--date",
                     "2026-06-16",
                     "--time",
                     "14:30",
@@ -72,7 +75,6 @@ class TestEventAdd:
                     "item 1",
                     "--detail",
                     "item 2",
-                    "meeting",
                 ],
                 cwd=Path(tmpdir),
             )
@@ -87,8 +89,8 @@ class TestEventAdd:
         """Adding event to existing date appends and sorts."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "10:00", "morning"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "afternoon"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "morning", "--date", "2026-06-16", "--time", "10:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "afternoon", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / "timelines.jsonl"
             content = storage_file.read_text().strip().split("\n")
@@ -104,35 +106,35 @@ class TestEventAdd:
             run_cli(["init"], cwd=Path(tmpdir))
 
             # argparse should enforce --time is required
-            result = run_cli(["event", "add", "2026-06-16", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(["event", "add", "meeting", "--date", "2026-06-16"], cwd=Path(tmpdir))
             # argparse will show error before reaching our handler
             assert result.returncode != 0
 
 
 class TestEventList:
-    """Tests for event list command."""
+    """Tests for event list command (new API: --range required)."""
 
     def test_event_list_shows_events(self):
         """Tracer bullet: timeline-cli event list shows events."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "09:00", "breakfast"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "12:00", "lunch"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "breakfast", "--date", "2026-06-16", "--time", "09:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "lunch", "--date", "2026-06-16", "--time", "12:00"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "09:00" in result.stdout
             assert "breakfast" in result.stdout
             assert "12:00" in result.stdout
             assert "lunch" in result.stdout
 
-    def test_event_list_json_output(self):
-        """Event list --json outputs JSON."""
+    def test_event_list_output_json(self):
+        """Event list --output json outputs JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "2026-06-16", "--json"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16", "--output", "json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             data = json.loads(result.stdout)
@@ -140,22 +142,25 @@ class TestEventList:
             assert len(data) == 1
             assert data[0]["time"] == "14:30"
 
-    def test_event_list_simple_output(self):
-        """Event list --simple outputs simple text."""
+    def test_event_list_output_simple(self):
+        """Event list --output simple outputs simple text."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "2026-06-16", "--simple"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16", "--output", "simple"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "14:30" in result.stdout
             assert "meeting" in result.stdout
 
-    def test_event_list_empty_date(self):
-        """Event list for date with no events."""
+    def test_event_list_contains_filter(self):
+        """Event list --contains filters by substring."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "team meeting", "--date", "2026-06-16", "--time", "10:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "lunch", "--date", "2026-06-16", "--time", "14:00"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16", "--contains", "meeting"], cwd=Path(tmpdir))
             assert result.returncode == 0
-            assert "No events" in result.stdout or result.stdout.strip() == ""
+            assert "team meeting" in result.stdout
+            assert "lunch" not in result.stdout

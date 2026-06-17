@@ -178,38 +178,33 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
 
 def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     """Setup event subcommand parsers."""
-    # event add
+    # event add (Issue #46: new order TEXT --date DATE --time TIME)
     add_parser = subparsers.add_parser("add", help="Add a new event")
-    add_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    add_parser.add_argument("--time", required=True, help="Time in HH:MM format")
     add_parser.add_argument("text", help="Event text")
+    add_parser.add_argument("--date", required=True, help="Date in YYYY-MM-DD format")
+    add_parser.add_argument("--time", required=True, help="Time in HH:MM format")
     add_parser.add_argument("--detail", action="append", help="Detail lines")
 
-    # event list
+    # event list (Issue #46: --range required)
     list_parser = subparsers.add_parser("list", help="List events")
-    list_parser.add_argument("--range", help="Date/time range (e.g., 'today', '2026-06-01..2026-06-30')")
+    list_parser.add_argument("--range", required=True, help="Date/time range (e.g., 'today', '2026-06-01..2026-06-30')")
     list_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
     list_parser.add_argument("--contains", help="Filter by text substring")
-    list_parser.add_argument("date", nargs="?", help="Date in YYYY-MM-DD format")
-    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    list_parser.add_argument("--simple", action="store_true", help="Output as simple text")
 
-    # event edit
+    # event edit (Issue #46: use --id)
     edit_parser = subparsers.add_parser("edit", help="Edit an event")
-    edit_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    edit_parser.add_argument("time", help="Time in HH:MM format")
-    edit_parser.add_argument("text_prefix", help="Text prefix to locate event")
+    edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
     edit_parser.add_argument("--append-detail", help="Append a detail line")
     edit_parser.add_argument("--set-detail", action="append", help="Replace all details")
+    edit_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
-    # event delete
+    # event delete (Issue #46: use --id)
     delete_parser = subparsers.add_parser("delete", help="Delete an event")
-    delete_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    delete_parser.add_argument("time", help="Time in HH:MM format")
-    delete_parser.add_argument("text_prefix", help="Text prefix to locate event")
+    delete_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     delete_parser.add_argument("--yes", action="store_true", help="Skip confirmation")
+    delete_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
 
 def _setup_note_commands(subparsers: argparse._SubParsersAction) -> None:

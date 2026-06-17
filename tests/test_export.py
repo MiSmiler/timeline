@@ -20,7 +20,7 @@ class TestExport:
             run_cli(["init"], cwd=tmpdir_path)
             result = run_cli(["todo", "add", "write tests", "--date", "2026-06-16"], cwd=tmpdir_path)
             assert result.returncode == 0
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=tmpdir_path)
+            run_cli(["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"], cwd=tmpdir_path)
             run_cli(["note", "add", "2026-06-16", "good day"], cwd=tmpdir_path)
 
             result = run_cli(
@@ -115,7 +115,7 @@ class TestExport:
 
             run_cli(["init"], cwd=tmpdir_path)
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "--detail", "discussed project", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30", "--detail", "discussed project"],
                 cwd=tmpdir_path,
             )
 

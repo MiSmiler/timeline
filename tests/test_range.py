@@ -113,11 +113,11 @@ class TestRangeParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "10:00", "meeting 16"],
+                ["event", "add", "meeting 16", "--date", "2026-06-16", "--time", "10:00"],
                 cwd=Path(tmpdir),
             )
             run_cli(
-                ["event", "add", "2026-06-17", "--time", "14:00", "meeting 17"],
+                ["event", "add", "meeting 17", "--date", "2026-06-17", "--time", "14:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -133,7 +133,7 @@ class TestRangeParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "10:00", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "10:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -158,11 +158,11 @@ class TestRangeBackwardCompatibility:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "10:00", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "10:00"],
                 cwd=Path(tmpdir),
             )
 
             # List with positional date (legacy)
-            result = run_cli(["event", "list", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "meeting" in result.stdout

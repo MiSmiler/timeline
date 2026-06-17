@@ -9,7 +9,7 @@ from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
     ensure_unique_id,
-    find_event_by_prefix,
+    find_event_by_id_in_timeline,
     get_or_create_daily_record,
     read_timeline,
     write_timeline,
@@ -17,7 +17,7 @@ from timeline_cli.storage import (
 
 
 def handle_event_add(args) -> None:
-    """Handle event add command."""
+    """Handle event add command (Issue #46: TEXT --date DATE --time TIME)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
     record = get_or_create_daily_record(timeline, args.date)
 
@@ -43,59 +43,35 @@ def handle_event_add(args) -> None:
 
 
 def handle_event_list(args) -> None:
-    """Handle event list command."""
+    """Handle event list command (Issue #46: --range required)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    # Use --range if provided
-    if hasattr(args, "range") and args.range:
-        date_range = parse_range(args.range)
-        events_with_dates = filter_events_by_range(timeline.records, date_range)
-        # Use --contains if provided
-        if hasattr(args, "contains") and args.contains:
-            events_with_dates = filter_by_contains(events_with_dates, args.contains)
-    else:
-        # Legacy: use positional date argument
-        if not args.date or args.date not in timeline.records:
-            print("No events found")
-            return
-        record = timeline.records[args.date]
-        events_with_dates = [(args.date, e) for e in record.events]
+    # Use --range (now required)
+    date_range = parse_range(args.range)
+    events_with_dates = filter_events_by_range(timeline.records, date_range)
 
-        # Apply --contains filter if provided
-        if hasattr(args, "contains") and args.contains:
-            events_with_dates = filter_by_contains(events_with_dates, args.contains)
+    # Apply additional filters
+    if hasattr(args, "contains") and args.contains:
+        events_with_dates = filter_by_contains(events_with_dates, args.contains)
 
     # Determine output format
-    # Legacy: --json or --simple override --output
-    if hasattr(args, "json") and args.json:
-        output_format = OutputFormat.JSON
-    elif hasattr(args, "simple") and args.simple:
-        output_format = OutputFormat.SIMPLE
-    elif hasattr(args, "output"):
-        output_format = OutputFormat(args.output)
-    else:
-        output_format = OutputFormat.TABLE
+    output_format = OutputFormat(args.output)
 
     # Output
     print(format_events(events_with_dates, output_format))
 
 
 def handle_event_edit(args) -> None:
-    """Handle event edit command."""
+    """Handle event edit command (Issue #46: use --id)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print(f"Error: No record found for {args.date}", file=sys.stderr)
-        sys.exit(1)
-
-    record = timeline.records[args.date]
-    result = find_event_by_prefix(record, args.time, args.text_prefix)
+    result = find_event_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print("Error: Event not found or ambiguous", file=sys.stderr)
+        print(f"Error: Event not found with ID '{args.id}'", file=sys.stderr)
         sys.exit(1)
 
-    idx, event = result
+    date, record, idx, event = result
 
     # Apply edits
     if args.new_text:
@@ -112,25 +88,34 @@ def handle_event_edit(args) -> None:
         record.events.sort(key=lambda e: e.time)
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Edited: {event.text}")
+
+    # Output based on format
+    if args.output == "json":
+        import json
+
+        output = {
+            "id": event.id,
+            "date": date,
+            "text": event.text,
+            "time": event.time,
+            "details": event.details,
+        }
+        print(json.dumps(output))
+    else:
+        print(f"Edited [{args.id}]: {event.text}")
 
 
 def handle_event_delete(args) -> None:
-    """Handle event delete command."""
+    """Handle event delete command (Issue #46: use --id)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print(f"Error: No record found for {args.date}", file=sys.stderr)
-        sys.exit(1)
-
-    record = timeline.records[args.date]
-    result = find_event_by_prefix(record, args.time, args.text_prefix)
+    result = find_event_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print("Error: Event not found or ambiguous", file=sys.stderr)
+        print(f"Error: Event not found with ID '{args.id}'", file=sys.stderr)
         sys.exit(1)
 
-    idx, event = result
+    date, record, idx, event = result
 
     # Check confirmation (skip with --yes)
     if not args.yes:
@@ -144,4 +129,4 @@ def handle_event_delete(args) -> None:
     record.events.pop(idx)
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Deleted: {event.text}")
+    print(f"Deleted [{args.id}]: {event.text}")

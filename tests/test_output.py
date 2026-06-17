@@ -66,13 +66,13 @@ class TestOutputParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
 
             # List with --output json
             result = run_cli(
-                ["event", "list", "2026-06-16", "--output", "json"],
+                ["event", "list", "--range", "2026-06-16", "--output", "json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -88,13 +88,13 @@ class TestOutputParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
 
             # List with --output simple
             result = run_cli(
-                ["event", "list", "2026-06-16", "--output", "simple"],
+                ["event", "list", "--range", "2026-06-16", "--output", "simple"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -147,17 +147,17 @@ class TestContainsParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "10:00", "team meeting"],
+                ["event", "add", "team meeting", "--date", "2026-06-16", "--time", "10:00"],
                 cwd=Path(tmpdir),
             )
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:00", "lunch"],
+                ["event", "add", "lunch", "--date", "2026-06-16", "--time", "14:00"],
                 cwd=Path(tmpdir),
             )
 
             # List with --contains meeting
             result = run_cli(
-                ["event", "list", "2026-06-16", "--contains", "meeting"],
+                ["event", "list", "--range", "2026-06-16", "--contains", "meeting"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

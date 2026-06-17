@@ -1,6 +1,7 @@
-"""Tests for event edit commands (#16)."""
+"""Tests for event edit commands (Issue #46 refactored)."""
 
 import json
+import re
 import tempfile
 from pathlib import Path
 
@@ -8,16 +9,25 @@ from conftest import run_cli
 
 
 class TestEventEdit:
-    """Tests for event edit command."""
+    """Tests for event edit command (new API: use --id)."""
 
     def test_event_edit_new_text(self):
         """Tracer bullet: timeline-cli event edit --new-text updates text."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "2026-06-16", "14:30", "meeting", "--new-text", "discussion"],
+                ["event", "edit", "--id", event_id, "--new-text", "discussion"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -31,10 +41,19 @@ class TestEventEdit:
         """Event edit --new-time updates time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "2026-06-16", "14:30", "meeting", "--new-time", "15:00"],
+                ["event", "edit", "--id", event_id, "--new-time", "15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -48,10 +67,19 @@ class TestEventEdit:
         """Event edit --append-detail adds detail."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "2026-06-16", "14:30", "meeting", "--append-detail", "notes"],
+                ["event", "edit", "--id", event_id, "--append-detail", "notes"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -65,15 +93,23 @@ class TestEventEdit:
         """Event edit --set-detail replaces all details."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "--detail", "old", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30", "--detail", "old"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
 
             result = run_cli(
                 [
                     "event",
                     "edit",
-                    "2026-06-16",
-                    "14:30",
-                    "meeting",
+                    "--id",
+                    event_id,
                     "--set-detail",
                     "new 1",
                     "--set-detail",
@@ -89,28 +125,34 @@ class TestEventEdit:
             assert record["events"][0]["details"] == ["new 1", "new 2"]
 
     def test_event_edit_not_found(self):
-        """Event edit fails if event not found."""
+        """Event edit fails if ID not found."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
 
-            result = run_cli(
-                ["event", "edit", "2026-06-16", "14:30", "missing", "--new-text", "new"],
-                cwd=Path(tmpdir),
-            )
+            result = run_cli(["event", "edit", "--id", "e99999", "--new-text", "new"], cwd=Path(tmpdir))
             assert result.returncode != 0
 
 
 class TestEventDelete:
-    """Tests for event delete command."""
+    """Tests for event delete command (new API: use --id)."""
 
     def test_event_delete_with_confirmation(self):
         """Tracer bullet: timeline-cli event delete removes event."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
 
             result = run_cli(
-                ["event", "delete", "2026-06-16", "14:30", "meeting", "--yes"],
+                ["event", "delete", "--id", event_id, "--yes"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -121,12 +163,9 @@ class TestEventDelete:
             assert len(record["events"]) == 0
 
     def test_event_delete_not_found(self):
-        """Event delete fails if event not found."""
+        """Event delete fails if ID not found."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
 
-            result = run_cli(
-                ["event", "delete", "2026-06-16", "14:30", "missing", "--yes"],
-                cwd=Path(tmpdir),
-            )
+            result = run_cli(["event", "delete", "--id", "e99999", "--yes"], cwd=Path(tmpdir))
             assert result.returncode != 0

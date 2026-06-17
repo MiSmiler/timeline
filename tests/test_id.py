@@ -44,7 +44,7 @@ class TestIDGeneration:
 
             # Add an event
             result = run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -112,12 +112,12 @@ class TestIDDisplay:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
 
             # List events
-            result = run_cli(["event", "list", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify ID column in output
@@ -224,7 +224,7 @@ class TestIDFormat:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
 
