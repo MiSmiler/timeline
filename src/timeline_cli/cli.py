@@ -106,10 +106,6 @@ def _dispatch(args: argparse.Namespace) -> None:
         from timeline_cli.commands.list import handle_list
 
         handle_list(args)
-    elif args.resource == "migrate":
-        from timeline_cli.commands.migrate import handle_migrate
-
-        handle_migrate(args)
     elif args.resource == "export":
         from timeline_cli.commands.export import handle_export
 
@@ -245,10 +241,6 @@ def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Validate data integrity")
     doctor_parser.add_argument("--fix", action="store_true", help="Auto-fix issues")
-
-    # migrate
-    migrate_parser = subparsers.add_parser("migrate", help="Migrate schema version")
-    migrate_parser.add_argument("--to", type=int, required=True, help="Target schema version")
 
 
 if __name__ == "__main__":

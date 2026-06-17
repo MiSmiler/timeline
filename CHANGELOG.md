@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-06-17
+## [0.1.1] - 2026-06-17
 
 ### Added
 
@@ -35,13 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Supported formats: `table` (default), `json`, `simple`
 - New `--contains` parameter for text substring filtering
 - New modules: `range_parser.py`, `output_formatter.py`
-
-#### Schema Migration (Issue #47)
-- `migrate --to 2` command for schema version upgrade
-- Assigns unique IDs to all existing Todo/Event items
-- Converts storage to UTF-8 encoding (Chinese text readable)
-- Updates schema_version header to 2
-- Displays migration progress
 
 ### Changed
 
@@ -87,7 +80,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Backward compatibility: schema v1 data can still be read
 - ID uniqueness guarantee with collision detection
 - UTF-8 encoding for Chinese text in storage
 - List command parameter consistency
@@ -107,8 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - Added ADR-0004: ID design decisions
-- Added ADR-0005: Schema v2 and project v0.2.0 planning
-- Updated CONTEXT.md with schema v2 information
+- Added ADR-0005: Project version 0.1.1 feature summary
+- Updated CONTEXT.md with ID system information
 
 ---
 

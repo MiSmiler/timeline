@@ -23,11 +23,7 @@ Single `timelines.jsonl` file in project directory. Created by `timeline-cli ini
 _Avoid_: Data file, database
 
 **Schema Version**:
-Integer in file header (`{"schema_version": 2}`). Managed centrally; migration is a unified operation via `timeline-cli migrate --to <version>`.
-
-Version history:
-- v1: Initial schema
-- v2: Introduced ID for Todo/Event; UTF-8 encoding (no Unicode escapes)
+Integer in file header (`{"schema_version": 1}`). Currently always 1. The `id` field for Todo/Event is part of v1 schema from the start.
 
 **Daily Record**:
 One line in `timelines.jsonl` representing a single day. Keyed by `YYYY-MM-DD`. Contains events, todos, and notes arrays.
@@ -49,9 +45,6 @@ Python CLI tool providing all CRUD operations. Installed via `pip install -e`. U
 
 **Doctor**:
 `timeline-cli doctor [--fix]` validates data integrity. Checks: JSON validity, date format, time format (HH:MM), status values, sorting, undated constraints.
-
-**Migration Script**:
-`scripts/migrate_from_markdown.py` for first-time users converting existing markdown to jsonline. Not part of timeline-cli.
 
 ## Architecture
 

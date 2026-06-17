@@ -23,7 +23,8 @@ Introduce unique IDs for todos and events:
 - **Display format**: Type prefix + ID (`t7b3k` for todo, `e4x1m` for event)
 - **Scope**: Separate ID sequences per type (todos and events have independent IDs)
 - **Generation**: Assigned at creation time, immutable thereafter
-- **Migration**: Existing data gets IDs via `doctor --fix`
+
+The `id` field is part of the v1 schema from the start. There is no migration needed.
 
 ## Consequences
 
@@ -37,20 +38,17 @@ Introduce unique IDs for todos and events:
 ### Negative
 
 - Data model change: adds `id` field to Todo and Event
-- Requires migration for existing data
 - Breaking change for any existing automation that relied on text_prefix
 
 ### Mitigation
 
-- Keep `text_prefix` as optional fallback for human convenience (but recommend ID)
-- `doctor --fix` handles migration automatically
 - Clear error messages guide users to use `--id` when ambiguous
 
 ## Examples
 
 ```bash
 # List shows ID
-timeline-cli todo list
+timeline-cli todo list --range today
 # ID     Date        Time   Status     Text
 # t7b3k  2026-06-19  10:00  pending    学理财：看书
 # ta2x1  2026-06-19  10:00  pending    学理财：记账
