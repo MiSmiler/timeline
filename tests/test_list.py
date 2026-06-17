@@ -14,8 +14,8 @@ class TestListCommand:
         """Tracer bullet: timeline-cli list shows all dates."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-17"], cwd=Path(tmpdir))
             run_cli(["note", "add", "0000-00-00", "inbox note"], cwd=Path(tmpdir))
 
             result = run_cli(["list"], cwd=Path(tmpdir))
@@ -28,7 +28,7 @@ class TestListCommand:
         """List --json outputs JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             result = run_cli(["list", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0

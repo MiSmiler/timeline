@@ -1,5 +1,6 @@
 """Tests for export commands (#17)."""
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -17,7 +18,8 @@ class TestExport:
             output_dir.mkdir()
 
             run_cli(["init"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "2026-06-16", "write tests"], cwd=tmpdir_path)
+            result = run_cli(["todo", "add", "write tests", "--date", "2026-06-16"], cwd=tmpdir_path)
+            assert result.returncode == 0
             run_cli(["event", "add", "2026-06-16", "--time", "14:30", "meeting"], cwd=tmpdir_path)
             run_cli(["note", "add", "2026-06-16", "good day"], cwd=tmpdir_path)
 
@@ -48,7 +50,7 @@ class TestExport:
             output_dir.mkdir()
 
             run_cli(["init"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=tmpdir_path)
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=tmpdir_path)
 
             run_cli(["export", "2026-06-16", "--output-dir", str(output_dir)], cwd=tmpdir_path)
 
@@ -64,8 +66,15 @@ class TestExport:
             output_dir.mkdir()
 
             run_cli(["init"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=tmpdir_path)
-            run_cli(["todo", "complete", "2026-06-16", "task"], cwd=tmpdir_path)
+            result = run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=tmpdir_path)
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            run_cli(["todo", "complete", "--id", todo_id], cwd=tmpdir_path)
 
             run_cli(["export", "2026-06-16", "--output-dir", str(output_dir)], cwd=tmpdir_path)
 
@@ -81,8 +90,15 @@ class TestExport:
             output_dir.mkdir()
 
             run_cli(["init"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "2026-06-16", "old task"], cwd=tmpdir_path)
-            run_cli(["todo", "abandon", "2026-06-16", "old"], cwd=tmpdir_path)
+            result = run_cli(["todo", "add", "old task", "--date", "2026-06-16"], cwd=tmpdir_path)
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            run_cli(["todo", "abandon", "--id", todo_id], cwd=tmpdir_path)
 
             run_cli(["export", "2026-06-16", "--output-dir", str(output_dir)], cwd=tmpdir_path)
 
@@ -122,8 +138,8 @@ class TestExportAll:
             output_dir.mkdir()
 
             run_cli(["init"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "2026-06-16", "task A"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "2026-06-17", "task B"], cwd=tmpdir_path)
+            run_cli(["todo", "add", "task A", "--date", "2026-06-16"], cwd=tmpdir_path)
+            run_cli(["todo", "add", "task B", "--date", "2026-06-17"], cwd=tmpdir_path)
 
             result = run_cli(["export-all", "--output-dir", str(output_dir)], cwd=tmpdir_path)
             assert result.returncode == 0
@@ -139,7 +155,7 @@ class TestExportAll:
             output_dir.mkdir()
 
             run_cli(["init"], cwd=tmpdir_path)
-            run_cli(["todo", "add", "0000-00-00", "inbox task"], cwd=tmpdir_path)
+            run_cli(["todo", "add", "inbox task", "--date", "0000-00-00"], cwd=tmpdir_path)
 
             run_cli(["export-all", "--output-dir", str(output_dir)], cwd=tmpdir_path)
 

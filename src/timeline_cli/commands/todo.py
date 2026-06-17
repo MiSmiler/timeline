@@ -9,7 +9,7 @@ from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
     ensure_unique_id,
-    find_todo_by_prefix,
+    find_todo_by_id_in_timeline,
     get_or_create_daily_record,
     read_timeline,
     write_timeline,
@@ -17,7 +17,7 @@ from timeline_cli.storage import (
 
 
 def handle_todo_add(args) -> None:
-    """Handle todo add command."""
+    """Handle todo add command (Issue #45: TEXT --date DATE --time TIME)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
     record = get_or_create_daily_record(timeline, args.date)
 
@@ -44,58 +44,23 @@ def handle_todo_add(args) -> None:
 
 
 def handle_todo_list(args) -> None:
-    """Handle todo list command."""
+    """Handle todo list command (Issue #45: --range required)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    # Collect todos with their dates
-    todos_with_dates = []
+    # Use --range (now required)
+    date_range = parse_range(args.range)
+    todos_with_dates = filter_todos_by_range(timeline.records, date_range)
 
-    # Use --range if provided
-    if hasattr(args, "range") and args.range:
-        date_range = parse_range(args.range)
-        todos_with_dates = filter_todos_by_range(timeline.records, date_range)
-
-        # Apply additional filters
-        if args.time:
-            todos_with_dates = [(d, t) for d, t in todos_with_dates if t.time == args.time]
-        if args.status:
-            todos_with_dates = [(d, t) for d, t in todos_with_dates if t.status == args.status]
-        # Use --contains if provided
-        if hasattr(args, "contains") and args.contains:
-            todos_with_dates = filter_by_contains(todos_with_dates, args.contains)
-        # Legacy: use text_prefix if provided
-        elif args.text_prefix:
-            todos_with_dates = [(d, t) for d, t in todos_with_dates if t.text.startswith(args.text_prefix)]
-    else:
-        # Legacy filter logic (--date, --overdue, --undated)
-        for date, record in timeline.records.items():
-            for todo in record.todos:
-                # Apply filters
-                if args.date and date != args.date:
-                    continue
-                if args.time and todo.time != args.time:
-                    continue
-                if args.status and todo.status != args.status:
-                    continue
-                if args.text_prefix and not todo.text.startswith(args.text_prefix):
-                    continue
-
-                todos_with_dates.append((date, todo))
-
-        # Apply --contains filter if provided
-        if hasattr(args, "contains") and args.contains:
-            todos_with_dates = filter_by_contains(todos_with_dates, args.contains)
+    # Apply additional filters
+    if args.time:
+        todos_with_dates = [(d, t) for d, t in todos_with_dates if t.time == args.time]
+    if args.status:
+        todos_with_dates = [(d, t) for d, t in todos_with_dates if t.status == args.status]
+    if hasattr(args, "contains") and args.contains:
+        todos_with_dates = filter_by_contains(todos_with_dates, args.contains)
 
     # Determine output format
-    # Legacy: --json or --simple override --output
-    if hasattr(args, "json") and args.json:
-        output_format = OutputFormat.JSON
-    elif hasattr(args, "simple") and args.simple:
-        output_format = OutputFormat.SIMPLE
-    elif hasattr(args, "output"):
-        output_format = OutputFormat(args.output)
-    else:
-        output_format = OutputFormat.TABLE
+    output_format = OutputFormat(args.output)
 
     # Output
     print(format_todos(todos_with_dates, output_format))
@@ -107,129 +72,97 @@ def _sort_todos(todos: list[Todo]) -> None:
 
 
 def handle_todo_complete(args) -> None:
-    """Handle todo complete command."""
+    """Handle todo complete command (Issue #45: use --id)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print(f"Error: No record found for {args.date}", file=sys.stderr)
-        sys.exit(1)
-
-    record = timeline.records[args.date]
-    result = find_todo_by_prefix(record, args.time, args.text_prefix)
+    result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print("Error: Todo not found or ambiguous", file=sys.stderr)
+        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
         sys.exit(1)
 
-    idx, todo = result
+    date, record, idx, todo = result
     todo.status = "completed"
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Completed: {todo.text}")
+    print(f"Completed [{args.id}]: {todo.text}")
 
 
 def handle_todo_abandon(args) -> None:
-    """Handle todo abandon command."""
+    """Handle todo abandon command (Issue #45: use --id)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print(f"Error: No record found for {args.date}", file=sys.stderr)
-        sys.exit(1)
-
-    record = timeline.records[args.date]
-    result = find_todo_by_prefix(record, args.time, args.text_prefix)
+    result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print("Error: Todo not found or ambiguous", file=sys.stderr)
+        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
         sys.exit(1)
 
-    idx, todo = result
+    date, record, idx, todo = result
     todo.status = "abandoned"
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Abandoned: {todo.text}")
+    print(f"Abandoned [{args.id}]: {todo.text}")
 
 
 def handle_todo_edit(args) -> None:
-    """Handle todo edit command."""
+    """Handle todo edit command (Issue #45: use --id)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print(f"Error: No record found for {args.date}", file=sys.stderr)
-        sys.exit(1)
-
-    record = timeline.records[args.date]
-    result = find_todo_by_prefix(record, args.time, args.text_prefix)
+    result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print("Error: Todo not found or ambiguous", file=sys.stderr)
+        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
         sys.exit(1)
 
-    idx, todo = result
+    date, record, idx, todo = result
 
     # Apply edits
     if args.new_text:
         todo.text = args.new_text
     if args.new_time:
         todo.time = args.new_time
+    if args.clear_time:
+        todo.time = None
     if args.append_detail:
         todo.details.append(args.append_detail)
     if args.set_detail:
         todo.details = args.set_detail
 
     # Re-sort if time changed
-    if args.new_time:
+    if args.new_time or args.clear_time:
         _sort_todos(record.todos)
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Edited: {todo.text}")
 
+    # Output based on format
+    if args.output == "json":
+        import json
 
-def handle_todo_move(args) -> None:
-    """Handle todo move command."""
-    timeline = read_timeline(DEFAULT_STORAGE_FILE)
-
-    if args.from_date not in timeline.records:
-        print(f"Error: No record found for {args.from_date}", file=sys.stderr)
-        sys.exit(1)
-
-    from_record = timeline.records[args.from_date]
-    result = find_todo_by_prefix(from_record, args.time, args.text_prefix)
-
-    if result is None:
-        print("Error: Todo not found or ambiguous", file=sys.stderr)
-        sys.exit(1)
-
-    idx, todo = result
-
-    # Remove from old date
-    from_record.todos.pop(idx)
-
-    # Add to new date
-    to_record = get_or_create_daily_record(timeline, args.to_date)
-    to_record.todos.append(todo)
-    _sort_todos(to_record.todos)
-
-    write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Moved: {todo.text} to {args.to_date}")
+        output = {
+            "id": todo.id,
+            "date": date,
+            "text": todo.text,
+            "time": todo.time,
+            "status": todo.status,
+            "details": todo.details,
+        }
+        print(json.dumps(output))
+    else:
+        print(f"Edited [{args.id}]: {todo.text}")
 
 
 def handle_todo_delete(args) -> None:
-    """Handle todo delete command."""
+    """Handle todo delete command (Issue #45: use --id)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    if args.date not in timeline.records:
-        print(f"Error: No record found for {args.date}", file=sys.stderr)
-        sys.exit(1)
-
-    record = timeline.records[args.date]
-    result = find_todo_by_prefix(record, args.time, args.text_prefix)
+    result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print("Error: Todo not found or ambiguous", file=sys.stderr)
+        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
         sys.exit(1)
 
-    idx, todo = result
+    date, record, idx, todo = result
 
     # Check confirmation (skip with --yes)
     if not args.yes:
@@ -243,4 +176,4 @@ def handle_todo_delete(args) -> None:
     record.todos.pop(idx)
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Deleted: {todo.text}")
+    print(f"Deleted [{args.id}]: {todo.text}")

@@ -1,4 +1,4 @@
-"""Tests for todo commands (#9)."""
+"""Tests for todo commands (Issue #45 refactored)."""
 
 import json
 import tempfile
@@ -8,7 +8,7 @@ from conftest import run_cli
 
 
 class TestTodoAdd:
-    """Tests for todo add command."""
+    """Tests for todo add command (new API: TEXT --date DATE --time TIME)."""
 
     def test_todo_add_creates_entry(self):
         """Tracer bullet: timeline-cli todo add creates a todo entry."""
@@ -16,8 +16,8 @@ class TestTodoAdd:
             # Setup: init the timeline
             run_cli(["init"], cwd=Path(tmpdir))
 
-            # Add a todo
-            result = run_cli(["todo", "add", "2026-06-16", "test task"], cwd=Path(tmpdir))
+            # Add a todo (new argument order)
+            result = run_cli(["todo", "add", "test task", "--date", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify: check the file
@@ -38,7 +38,7 @@ class TestTodoAdd:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "2026-06-16", "--time", "14:30", "meeting"],
+                ["todo", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -53,7 +53,7 @@ class TestTodoAdd:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "2026-06-16", "--detail", "extra info", "test"],
+                ["todo", "add", "test", "--date", "2026-06-16", "--detail", "extra info"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -71,12 +71,13 @@ class TestTodoAdd:
                 [
                     "todo",
                     "add",
+                    "test",
+                    "--date",
                     "2026-06-16",
                     "--detail",
                     "line 1",
                     "--detail",
                     "line 2",
-                    "test",
                 ],
                 cwd=Path(tmpdir),
             )
@@ -91,8 +92,8 @@ class TestTodoAdd:
         """Adding todo to an existing date should append."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 1"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 2"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 1", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 2", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / "timelines.jsonl"
             content = storage_file.read_text().strip().split("\n")
@@ -101,28 +102,28 @@ class TestTodoAdd:
 
 
 class TestTodoList:
-    """Tests for todo list command."""
+    """Tests for todo list command (new API: --range required)."""
 
     def test_todo_list_shows_all_pending(self):
         """Tracer bullet: timeline-cli todo list shows pending todos."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 1"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task 2"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 1", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 2", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--range", ".."], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "task 1" in result.stdout
             assert "task 2" in result.stdout
 
     def test_todo_list_filter_by_date(self):
-        """Todo list --date filters by date."""
+        """Todo list --range filters by date."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task A"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task B"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task A", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task B", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "task A" in result.stdout
             assert "task B" not in result.stdout
@@ -131,10 +132,10 @@ class TestTodoList:
         """Todo list --time filters by time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "--time", "09:00", "morning"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "--time", "14:30", "afternoon"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "morning", "--date", "2026-06-16", "--time", "09:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "afternoon", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--time", "14:30"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "afternoon" in result.stdout
             assert "morning" not in result.stdout
@@ -143,25 +144,29 @@ class TestTodoList:
         """Todo list --status filters by status."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "pending task"], cwd=Path(tmpdir))
-            # Manually mark one as completed (will implement complete in #14)
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            record["todos"][0]["status"] = "completed"
-            storage_file.write_text(content[0] + "\n" + json.dumps(record) + "\n")
+            result = run_cli(["todo", "add", "pending task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            assert result.returncode == 0
 
-            result = run_cli(["todo", "list", "--status", "completed"], cwd=Path(tmpdir))
+            # Extract ID and complete it
+            import re
+
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
+
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--status", "completed"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "pending task" in result.stdout
 
-    def test_todo_list_json_output(self):
-        """Todo list --json outputs JSON format."""
+    def test_todo_list_output_json(self):
+        """Todo list --output json outputs JSON format."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--json"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--output", "json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Should be valid JSON
@@ -169,26 +174,26 @@ class TestTodoList:
             assert isinstance(data, list)
             assert len(data) > 0
 
-    def test_todo_list_simple_output(self):
-        """Todo list --simple outputs simple text."""
+    def test_todo_list_output_simple(self):
+        """Todo list --output simple outputs simple text."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--simple"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--output", "simple"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "2026-06-16" in result.stdout
             assert "task" in result.stdout
 
-    def test_todo_list_text_prefix_filter(self):
-        """Todo list with text prefix positional argument."""
+    def test_todo_list_contains_filter(self):
+        """Todo list --contains filters by substring."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "write unit tests"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "write docs"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "review code"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "write unit tests", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "write docs", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "review code", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "write"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--contains", "write"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "unit tests" in result.stdout
             assert "docs" in result.stdout

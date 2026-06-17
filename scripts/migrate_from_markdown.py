@@ -33,7 +33,7 @@ def parse_markdown_file(md_path: Path) -> dict:
 
     current_section = None
     last_event_idx = None  # Track last event for details
-    last_todo_idx = None   # Track last todo for details
+    last_todo_idx = None  # Track last todo for details
     for line in lines:
         # Section headers
         if line.startswith("## Events"):
@@ -73,11 +73,13 @@ def parse_markdown_file(md_path: Path) -> dict:
                 parts = text.split(". ", 1)
                 event_text = parts[0]
                 details = [parts[1]] if len(parts) > 1 else []
-                events.append({
-                    "time": time,
-                    "text": event_text,
-                    "details": details,
-                })
+                events.append(
+                    {
+                        "time": time,
+                        "text": event_text,
+                        "details": details,
+                    }
+                )
                 last_event_idx = len(events) - 1
 
         # Parse todos
@@ -108,12 +110,14 @@ def parse_markdown_file(md_path: Path) -> dict:
                 else:
                     todo_time = None
 
-                todos.append({
-                    "time": todo_time,
-                    "text": text,
-                    "status": status,
-                    "details": [],
-                })
+                todos.append(
+                    {
+                        "time": todo_time,
+                        "text": text,
+                        "status": status,
+                        "details": [],
+                    }
+                )
                 last_todo_idx = len(todos) - 1
 
         # Parse notes (everything after ## Notes)

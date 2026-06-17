@@ -1,5 +1,6 @@
 """Tests for --range parameter (Issue #43)."""
 
+import json
 import tempfile
 from pathlib import Path
 
@@ -14,9 +15,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            # Add todo for today and yesterday
-            run_cli(["todo", "add", "2026-06-17", "today task"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "yesterday task"], cwd=Path(tmpdir))
+            # Add todo for today and yesterday (new API)
+            run_cli(["todo", "add", "today task", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "yesterday task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             # List with --range today
             result = run_cli(["todo", "list", "--range", "today"], cwd=Path(tmpdir))
@@ -29,9 +30,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-15", "task 15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task 17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range 2026-06-16
             result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
@@ -45,15 +46,13 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-14", "task 14"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-15", "task 15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task 17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 14", "--date", "2026-06-14"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range 2026-06-15..2026-06-16
-            result = run_cli(
-                ["todo", "list", "--range", "2026-06-15..2026-06-16"], cwd=Path(tmpdir)
-            )
+            result = run_cli(["todo", "list", "--range", "2026-06-15..2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "task 15" in result.stdout
             assert "task 16" in result.stdout
@@ -65,9 +64,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-14", "task 14"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-15", "task 15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 14", "--date", "2026-06-14"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             # List with --range 2026-06-15..
             result = run_cli(["todo", "list", "--range", "2026-06-15.."], cwd=Path(tmpdir))
@@ -81,9 +80,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-15", "task 15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task 17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range ..2026-06-16
             result = run_cli(["todo", "list", "--range", "..2026-06-16"], cwd=Path(tmpdir))
@@ -97,9 +96,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-15", "task 15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task 17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range ..
             result = run_cli(["todo", "list", "--range", ".."], cwd=Path(tmpdir))
@@ -123,17 +122,13 @@ class TestRangeParameter:
             )
 
             # List with --range 2026-06-16
-            result = run_cli(
-                ["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir)
-            )
+            result = run_cli(["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "meeting 16" in result.stdout
             assert "meeting 17" not in result.stdout
 
     def test_event_list_with_range_json(self):
-        """Event list --range --json should include date field."""
-        import json
-
+        """Event list --range --output json should include date field."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
@@ -142,9 +137,9 @@ class TestRangeParameter:
                 cwd=Path(tmpdir),
             )
 
-            # List with --range and --json
+            # List with --range and --output json
             result = run_cli(
-                ["event", "list", "--range", "2026-06-16", "--json"],
+                ["event", "list", "--range", "2026-06-16", "--output", "json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -155,19 +150,7 @@ class TestRangeParameter:
 
 
 class TestRangeBackwardCompatibility:
-    """Tests for backward compatibility with --date parameter."""
-
-    def test_todo_list_with_date_still_works(self):
-        """Todo list --date should still work alongside --range."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
-
-            # List with --date (legacy)
-            result = run_cli(["todo", "list", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            assert result.returncode == 0
-            assert "task" in result.stdout
+    """Tests for backward compatibility."""
 
     def test_event_list_with_positional_date_still_works(self):
         """Event list with positional date should still work."""

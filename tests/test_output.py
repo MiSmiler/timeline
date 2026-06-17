@@ -15,11 +15,11 @@ class TestOutputParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List with --output json
+            # List with --output json (new API)
             result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--output", "json"],
+                ["todo", "list", "--range", "2026-06-16", "--output", "json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -34,11 +34,11 @@ class TestOutputParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List with --output simple
+            # List with --output simple (new API)
             result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--output", "simple"],
+                ["todo", "list", "--range", "2026-06-16", "--output", "simple"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -50,11 +50,11 @@ class TestOutputParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List with --output table (default)
+            # List with --output table (default, new API)
             result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--output", "table"],
+                ["todo", "list", "--range", "2026-06-16", "--output", "table"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -110,13 +110,13 @@ class TestContainsParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "buy groceries"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "buy milk"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "call mom"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "buy groceries", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "buy milk", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "call mom", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List with --contains buy
+            # List with --contains buy (new API)
             result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--contains", "buy"],
+                ["todo", "list", "--range", "2026-06-16", "--contains", "buy"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -129,10 +129,10 @@ class TestContainsParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "meeting with team"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "call team lead"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "meeting with team", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "call team lead", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
-            # List with --range and --contains
+            # List with --range and --contains (new API)
             result = run_cli(
                 ["todo", "list", "--range", "..", "--contains", "team"],
                 cwd=Path(tmpdir),
@@ -163,57 +163,3 @@ class TestContainsParameter:
             assert result.returncode == 0
             assert "team meeting" in result.stdout
             assert "lunch" not in result.stdout
-
-
-class TestOutputBackwardCompatibility:
-    """Tests for backward compatibility with --json and --simple."""
-
-    def test_todo_list_json_still_works(self):
-        """Todo list --json should still work."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
-
-            # List with --json (legacy)
-            result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--json"],
-                cwd=Path(tmpdir),
-            )
-            assert result.returncode == 0
-
-            data = json.loads(result.stdout)
-            assert len(data) == 1
-
-    def test_todo_list_simple_still_works(self):
-        """Todo list --simple should still work."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
-
-            # List with --simple (legacy)
-            result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--simple"],
-                cwd=Path(tmpdir),
-            )
-            assert result.returncode == 0
-            assert "2026-06-16" in result.stdout
-
-    def test_json_overrides_output(self):
-        """--json should override --output."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
-
-            # List with both --output and --json (--json should win)
-            result = run_cli(
-                ["todo", "list", "--date", "2026-06-16", "--output", "table", "--json"],
-                cwd=Path(tmpdir),
-            )
-            assert result.returncode == 0
-
-            # Should be JSON, not table
-            data = json.loads(result.stdout)
-            assert len(data) == 1

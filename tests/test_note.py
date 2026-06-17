@@ -27,7 +27,7 @@ class TestNoteAdd:
         """Adding note to date with existing todos/events."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-16", "good day"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / "timelines.jsonl"

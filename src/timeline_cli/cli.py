@@ -54,7 +54,6 @@ def _dispatch(args: argparse.Namespace) -> None:
             handle_todo_delete,
             handle_todo_edit,
             handle_todo_list,
-            handle_todo_move,
         )
 
         if args.action == "add":
@@ -67,8 +66,6 @@ def _dispatch(args: argparse.Namespace) -> None:
             handle_todo_abandon(args)
         elif args.action == "edit":
             handle_todo_edit(args)
-        elif args.action == "move":
-            handle_todo_move(args)
         elif args.action == "delete":
             handle_todo_delete(args)
         else:
@@ -133,62 +130,50 @@ def _dispatch(args: argparse.Namespace) -> None:
 
 def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
     """Setup todo subcommand parsers."""
-    # todo add
+    # todo add (Issue #45: new order TEXT --date DATE --time TIME)
     add_parser = subparsers.add_parser("add", help="Add a new todo")
-    add_parser.add_argument("date", help="Date in YYYY-MM-DD format")
     add_parser.add_argument("text", help="Todo text")
+    add_parser.add_argument("--date", required=True, help="Date in YYYY-MM-DD format")
     add_parser.add_argument("--time", help="Time in HH:MM format")
     add_parser.add_argument("--detail", action="append", help="Detail lines")
 
-    # todo list
+    # todo list (Issue #45: --range required)
     list_parser = subparsers.add_parser("list", help="List todos")
-    list_parser.add_argument("--range", help="Date/time range (e.g., 'today', '..now', '2026-06-01..2026-06-30', '?')")
+    list_parser.add_argument(
+        "--range",
+        required=True,
+        help="Date/time range (e.g., 'today', '..now', '2026-06-01..2026-06-30', '?')",
+    )
     list_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
     list_parser.add_argument("--contains", help="Filter by text substring")
-    list_parser.add_argument("--date", help="Filter by date (YYYY-MM-DD)")
     list_parser.add_argument("--time", help="Filter by time (HH:MM)")
     list_parser.add_argument("--status", choices=["pending", "completed", "abandoned"], help="Filter by status")
-    list_parser.add_argument("--overdue", action="store_true", help="Show overdue todos")
-    list_parser.add_argument("--undated", action="store_true", help="Show undated todos")
-    list_parser.add_argument("text_prefix", nargs="?", help="Filter by text prefix")
-    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    list_parser.add_argument("--simple", action="store_true", help="Output as simple text")
 
-    # todo complete
+    # todo complete (Issue #45: use --id)
     complete_parser = subparsers.add_parser("complete", help="Complete a todo")
-    complete_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    complete_parser.add_argument("--time", help="Time in HH:MM format")
-    complete_parser.add_argument("text_prefix", help="Text prefix to locate todo")
+    complete_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
+    complete_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
-    # todo abandon
+    # todo abandon (Issue #45: use --id)
     abandon_parser = subparsers.add_parser("abandon", help="Abandon a todo")
-    abandon_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    abandon_parser.add_argument("--time", help="Time in HH:MM format")
-    abandon_parser.add_argument("text_prefix", help="Text prefix to locate todo")
+    abandon_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
+    abandon_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
-    # todo edit
+    # todo edit (Issue #45: use --id)
     edit_parser = subparsers.add_parser("edit", help="Edit a todo")
-    edit_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    edit_parser.add_argument("--time", help="Time in HH:MM format")
-    edit_parser.add_argument("text_prefix", help="Text prefix to locate todo")
+    edit_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
+    edit_parser.add_argument("--clear-time", action="store_true", help="Clear time field")
     edit_parser.add_argument("--append-detail", help="Append a detail line")
     edit_parser.add_argument("--set-detail", action="append", help="Replace all details")
+    edit_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
-    # todo move
-    move_parser = subparsers.add_parser("move", help="Move a todo to another date")
-    move_parser.add_argument("from_date", help="Current date (YYYY-MM-DD)")
-    move_parser.add_argument("to_date", help="Target date (YYYY-MM-DD)")
-    move_parser.add_argument("--time", help="Time in HH:MM format")
-    move_parser.add_argument("text_prefix", help="Text prefix to locate todo")
-
-    # todo delete
+    # todo delete (Issue #45: use --id)
     delete_parser = subparsers.add_parser("delete", help="Delete a todo")
-    delete_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    delete_parser.add_argument("--time", help="Time in HH:MM format")
-    delete_parser.add_argument("text_prefix", help="Text prefix to locate todo")
+    delete_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
     delete_parser.add_argument("--yes", action="store_true", help="Skip confirmation")
+    delete_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
 
 def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:

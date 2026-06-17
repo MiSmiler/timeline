@@ -1,6 +1,7 @@
 """Tests for ID generation and lookup (Issue #42)."""
 
 import json
+import string
 import tempfile
 from pathlib import Path
 
@@ -16,8 +17,8 @@ class TestIDGeneration:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
 
-            # Add a todo
-            result = run_cli(["todo", "add", "2026-06-16", "test task"], cwd=Path(tmpdir))
+            # Add a todo (new API)
+            result = run_cli(["todo", "add", "test task", "--date", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify ID in output
@@ -69,10 +70,10 @@ class TestIDGeneration:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
 
-            # Add multiple todos
-            run_cli(["todo", "add", "2026-06-16", "task 1"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task 2"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-17", "task 3"], cwd=Path(tmpdir))
+            # Add multiple todos (new API)
+            run_cli(["todo", "add", "task 1", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 2", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 3", "--date", "2026-06-17"], cwd=Path(tmpdir))
 
             # Verify IDs are unique
             storage_file = Path(tmpdir) / "timelines.jsonl"
@@ -96,10 +97,10 @@ class TestIDDisplay:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List todos
-            result = run_cli(["todo", "list", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            # List todos (new API: --range required)
+            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify ID column in output
@@ -127,10 +128,10 @@ class TestIDDisplay:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List todos with JSON
-            result = run_cli(["todo", "list", "--date", "2026-06-16", "--json"], cwd=Path(tmpdir))
+            # List todos with JSON (new API)
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--output", "json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Parse JSON output
@@ -168,8 +169,8 @@ class TestBackwardCompatibility:
             ]
             storage_file.write_text("\n".join(content) + "\n")
 
-            # Should be able to list
-            result = run_cli(["todo", "list"], cwd=Path(tmpdir))
+            # Should be able to list (new API: --range required)
+            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "legacy task" in result.stdout
 
@@ -198,8 +199,8 @@ class TestBackwardCompatibility:
             ]
             storage_file.write_text("\n".join(content) + "\n")
 
-            # List should work (no ID column since no items have ID)
-            result = run_cli(["todo", "list", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            # List should work (new API)
+            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "old task" in result.stdout
 
@@ -211,7 +212,7 @@ class TestIDFormat:
         """Todo ID should start with 't'."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / "timelines.jsonl"
             content = storage_file.read_text().strip().split("\n")
@@ -236,7 +237,7 @@ class TestIDFormat:
         """ID should only use lowercase letters and digits."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / "timelines.jsonl"
             content = storage_file.read_text().strip().split("\n")
@@ -244,8 +245,6 @@ class TestIDFormat:
             todo_id = record["todos"][0]["id"]
 
             # Check format: 't' followed by 5 lowercase/digits
-            import string
-
             random_part = todo_id[1:]  # Skip prefix
             assert len(random_part) == 5
             assert all(c in string.ascii_lowercase + string.digits for c in random_part)

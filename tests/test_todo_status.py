@@ -1,6 +1,7 @@
-"""Tests for todo status commands (#14)."""
+"""Tests for todo status commands (Issue #45 refactored)."""
 
 import json
+import re
 import tempfile
 from pathlib import Path
 
@@ -8,81 +9,53 @@ from conftest import run_cli
 
 
 class TestTodoComplete:
-    """Tests for todo complete command."""
+    """Tests for todo complete command (new API: use --id)."""
 
     def test_todo_complete_marks_completed(self):
         """Tracer bullet: timeline-cli todo complete marks todo as completed."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "write tests"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "write tests", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            assert result.returncode == 0
 
-            result = run_cli(["todo", "complete", "2026-06-16", "write"], cwd=Path(tmpdir))
+            # Extract ID
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            result = run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / "timelines.jsonl"
             content = storage_file.read_text().strip().split("\n")
             record = json.loads(content[1])
             assert record["todos"][0]["status"] == "completed"
-
-    def test_todo_complete_with_time(self):
-        """Todo complete with --time locates specific todo."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "--time", "09:00", "morning"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "--time", "14:00", "afternoon"], cwd=Path(tmpdir))
-
-            result = run_cli(["todo", "complete", "2026-06-16", "--time", "09:00", "morning"], cwd=Path(tmpdir))
-            assert result.returncode == 0
-
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["status"] == "completed"
-            assert record["todos"][1]["status"] == "pending"
 
     def test_todo_complete_not_found(self):
-        """Todo complete fails if todo not found."""
+        """Todo complete fails if ID not found."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "complete", "2026-06-16", "nonexistent"], cwd=Path(tmpdir))
-            assert result.returncode != 0
-
-    def test_todo_complete_ambiguous(self):
-        """Todo complete fails if multiple todos match prefix."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task A"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "task B"], cwd=Path(tmpdir))
-
-            result = run_cli(["todo", "complete", "2026-06-16", "task"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "complete", "--id", "t99999"], cwd=Path(tmpdir))
             assert result.returncode != 0
 
 
 class TestTodoAbandon:
-    """Tests for todo abandon command."""
+    """Tests for todo abandon command (new API: use --id)."""
 
     def test_todo_abandon_marks_abandoned(self):
         """Tracer bullet: timeline-cli todo abandon marks todo as abandoned."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "old task"], cwd=Path(tmpdir))
-
-            result = run_cli(["todo", "abandon", "2026-06-16", "old"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "old task", "--date", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / "timelines.jsonl"
-            content = storage_file.read_text().strip().split("\n")
-            record = json.loads(content[1])
-            assert record["todos"][0]["status"] == "abandoned"
+            # Extract ID
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
 
-    def test_todo_abandon_with_time(self):
-        """Todo abandon with --time locates specific todo."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "2026-06-16", "--time", "10:00", "task"], cwd=Path(tmpdir))
-
-            result = run_cli(["todo", "abandon", "2026-06-16", "--time", "10:00", "task"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "abandon", "--id", todo_id], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / "timelines.jsonl"
@@ -91,9 +64,9 @@ class TestTodoAbandon:
             assert record["todos"][0]["status"] == "abandoned"
 
     def test_todo_abandon_not_found(self):
-        """Todo abandon fails if todo not found."""
+        """Todo abandon fails if ID not found."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "abandon", "2026-06-16", "missing"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "abandon", "--id", "t99999"], cwd=Path(tmpdir))
             assert result.returncode != 0
