@@ -5,11 +5,11 @@ A daily event and todo management system with structured storage (jsonline) and 
 ## Core Concepts
 
 **Todo**:
-A task to be done. May have a specific time or be undated. Three states: `pending`, `completed`, `abandoned`. Located by date + time (optional) + text prefix matching—no ID required.
+A task to be done. May have a specific time or be undated. Three states: `pending`, `completed`, `abandoned`. Identified by unique ID (`t<random>` format). ID is immutable and persists across edits/moves.
 _Avoid_: Task, item, reminder
 
 **Event**:
-A record of something that happened at a specific time. Immutable once created. Located by date + time + text prefix matching.
+A record of something that happened at a specific time. Immutable once created. Identified by unique ID (`e<random>` format).
 _Avoid_: Entry, occurrence, log
 
 **Note**:
@@ -23,7 +23,11 @@ Single `timelines.jsonl` file in project directory. Created by `timeline-cli ini
 _Avoid_: Data file, database
 
 **Schema Version**:
-Integer in file header (`{"schema_version": 1}`). Managed centrally; migration is a unified operation via `timeline-cli migrate --to <version>`.
+Integer in file header (`{"schema_version": 2}`). Managed centrally; migration is a unified operation via `timeline-cli migrate --to <version>`.
+
+Version history:
+- v1: Initial schema
+- v2: Introduced ID for Todo/Event; UTF-8 encoding (no Unicode escapes)
 
 **Daily Record**:
 One line in `timelines.jsonl` representing a single day. Keyed by `YYYY-MM-DD`. Contains events, todos, and notes arrays.
@@ -59,6 +63,29 @@ Resource-first command structure: `timeline-cli todo add`, `timeline-cli event l
 
 **Query Output**:
 Three formats: default table, `--json` for machine parsing, `--simple` for plain text.
+
+**Range Filter**:
+`--range` parameter (required). Syntax: `left..right`
+- `..` = all
+- `today` = current day (00:00~23:59)
+- `..today` / `today..` = relative to today
+- `..YYYY-MM-DD` / `YYYY-MM-DD..` = relative to date
+- `YYYY-MM-DD..YYYY-MM-DD` = date range
+- `YYYY-MM-DDTHH:MM..` = precise time point
+- `..now` / `now..` = relative to current time
+- `?` = undated (standalone)
+
+Keywords: `now` (current timestamp), `today` (current day).
+
+**Text Filter**:
+`--contains` for substring matching.
+
+**Status Filter**:
+`--status` for filtering by status (pending/completed/abandoned).
+
+**Query Output**:
+`--output` parameter controls output format: `table` (default), `json`, `simple`.
+Applies to list commands and action commands (add, complete, edit, delete).
 
 ## Boundaries
 
