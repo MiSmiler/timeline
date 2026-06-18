@@ -3,6 +3,8 @@
 import argparse
 import sys
 
+from timeline_cli.version import get_version
+
 
 def main() -> None:
     """Main entry point for timeline-cli."""
@@ -10,6 +12,7 @@ def main() -> None:
         prog="timeline-cli",
         description="A CLI tool for managing daily events, todos, and notes with jsonline storage",
     )
+    parser.add_argument("--version", action="version", version=f"timeline-cli {get_version()}")
     subparsers = parser.add_subparsers(dest="resource", help="Resource type")
 
     # Todo subcommands
