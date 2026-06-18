@@ -1,8 +1,12 @@
 """Tests for --range parameter (Issue #43)."""
 
 import json
+import sys
 import tempfile
 from pathlib import Path
+
+# Add src directory to Python path for direct imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from conftest import run_cli
 
@@ -147,6 +151,80 @@ class TestRangeParameter:
             data = json.loads(result.stdout)
             assert len(data) == 1
             assert data[0]["date"] == "2026-06-16"
+
+
+class TestRelativeDateKeywords:
+    """Tests for relative date keywords (yesterday, tomorrow)."""
+
+    def test_yesterday_keyword_parsing(self):
+        """Test that 'yesterday' keyword resolves to the previous day."""
+        from datetime import date, timedelta
+
+        from timeline_cli.range_parser import parse_datetime
+
+        # RED phase: This should fail before implementation
+        yesterday = parse_datetime("yesterday")
+        today = date.today()
+        expected_yesterday = today - timedelta(days=1)
+
+        assert yesterday == expected_yesterday
+
+    def test_tomorrow_keyword_parsing(self):
+        """Test that 'tomorrow' keyword resolves to the next day."""
+        from datetime import date, timedelta
+
+        from timeline_cli.range_parser import parse_datetime
+
+        # RED phase: This should fail before implementation
+        tomorrow = parse_datetime("tomorrow")
+        today = date.today()
+        expected_tomorrow = today + timedelta(days=1)
+
+        assert tomorrow == expected_tomorrow
+
+    def test_todo_list_with_range_yesterday(self):
+        """Todo list --range yesterday should show yesterday's todos."""
+        from datetime import date, timedelta
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            today = date.today()
+            yesterday = today - timedelta(days=1)
+            day_before = today - timedelta(days=2)
+
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "yesterday task", "--date", str(yesterday)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "today task", "--date", str(today)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "day before task", "--date", str(day_before)], cwd=Path(tmpdir))
+
+            # List with --range yesterday
+            result = run_cli(["todo", "list", "--range", "yesterday"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "yesterday task" in result.stdout
+            assert "today task" not in result.stdout
+            assert "day before task" not in result.stdout
+
+    def test_todo_list_with_range_tomorrow(self):
+        """Todo list --range tomorrow should show tomorrow's todos."""
+        from datetime import date, timedelta
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            today = date.today()
+            tomorrow = today + timedelta(days=1)
+            day_after = today + timedelta(days=2)
+
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "tomorrow task", "--date", str(tomorrow)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "today task", "--date", str(today)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "day after task", "--date", str(day_after)], cwd=Path(tmpdir))
+
+            # List with --range tomorrow
+            result = run_cli(["todo", "list", "--range", "tomorrow"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "tomorrow task" in result.stdout
+            assert "today task" not in result.stdout
+            assert "day after task" not in result.stdout
 
 
 class TestRangeBackwardCompatibility:
