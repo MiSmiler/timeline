@@ -185,7 +185,7 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
-edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
+    edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
 
     # event delete (Issue #46: use --id)
