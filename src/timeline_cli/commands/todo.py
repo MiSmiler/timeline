@@ -145,7 +145,6 @@ def handle_todo_edit(args) -> None:
         changes.append(("time", old_time, "(cleared)"))
 
     if args.append_detail:
-if args.append_detail:
         # Issue #54: Support multiple --append-detail calls
         for detail in args.append_detail:
             todo.details.append(detail)

@@ -185,7 +185,7 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
-edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
+    edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
 
     # event delete (Issue #46: use --id)
@@ -218,7 +218,7 @@ def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
 
     # list
     list_parser = subparsers.add_parser("list", help="List all dates")
-    list_parser.add_argument("--output", choices=["table", "json"], default="table", help="Output format")
+    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Validate data integrity")
