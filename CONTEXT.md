@@ -55,7 +55,7 @@ Python CLI tool providing all CRUD operations. Installed via `pip install -e`. U
 `timeline-cli diary [date]` shows complete daily view (events, todos, notes) for one date. Accepts relative keywords (`today`, `yesterday`, `tomorrow`) or `YYYY-MM-DD`. Markdown output only. Supports `--show-id` to display item IDs.
 
 **Doctor**:
-`timeline-cli doctor [--fix]` validates data integrity. Checks: JSON validity, date format, time format (HH:MM), status values, sorting, undated constraints.
+`timeline-cli doctor [--fix]` validates data integrity. Checks: JSON validity, schema_version header, date/time format, status values, required fields, sorting, undated constraints, note uniqueness per date, ID uniqueness. `--fix` currently only repairs sorting issues.
 
 ## Architecture
 

@@ -1,4 +1,24 @@
-"""Doctor command implementation - data validation."""
+"""Doctor command implementation - data validation.
+
+Checks performed:
+- JSON validity (each line)
+- schema_version header presence
+- Date format (YYYY-MM-DD)
+- Time format (HH:MM) for events/todos
+- Status values (pending/completed/abandoned)
+- Required fields per type (event: time+text+date, todo: text, note: text+date)
+- Undated todos cannot have time
+- Sorting correctness (by date, type, time)
+- One note per date maximum
+- ID uniqueness
+
+The --fix flag currently only repairs sorting issues (events and todos sorted by time).
+TODO: Extend --fix to handle more repair scenarios:
+- Remove duplicate IDs (keep first occurrence)
+- Remove orphaned items (events without date/time, notes without date)
+- Fix invalid status values (default to 'pending')
+- Handle multiple notes per date (keep most recent)
+"""
 
 import json
 import re
