@@ -1,6 +1,5 @@
 """Tests for note commands (#11)."""
 
-import json
 import tempfile
 from pathlib import Path
 

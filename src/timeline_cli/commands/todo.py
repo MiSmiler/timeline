@@ -128,9 +128,12 @@ def handle_todo_edit(args) -> None:
     if args.clear_time:
         todo.time = None
     if args.append_detail:
-        todo.details.append(args.append_detail)
+        # Issue #54: Support multiple --append-detail calls
+        for detail in args.append_detail:
+            todo.details.append(detail)
     if args.set_detail:
-        todo.details = args.set_detail
+        # Issue #54: Parse \n-separated details
+        todo.details = [line for line in args.set_detail.split("\n") if line.strip()]
 
     # Re-sort if time changed
     if args.new_time or args.clear_time:

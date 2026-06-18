@@ -1,6 +1,5 @@
 """Tests for todo status commands (Issue #45 refactored)."""
 
-import json
 import re
 import tempfile
 from pathlib import Path

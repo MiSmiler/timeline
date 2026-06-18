@@ -82,9 +82,12 @@ def handle_event_edit(args) -> None:
     if args.new_time:
         event.time = args.new_time
     if args.append_detail:
-        event.details.append(args.append_detail)
+        # Issue #54: Support multiple --append-detail calls
+        for detail in args.append_detail:
+            event.details.append(detail)
     if args.set_detail:
-        event.details = args.set_detail
+        # Issue #54: Parse \n-separated details
+        event.details = [line for line in args.set_detail.split("\n") if line.strip()]
 
     # Re-sort if time changed
     if args.new_time:

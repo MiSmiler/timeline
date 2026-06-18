@@ -1,6 +1,5 @@
 """Tests for todo edit commands (Issue #45 refactored)."""
 
-import json
 import re
 import tempfile
 from pathlib import Path
@@ -77,8 +76,40 @@ class TestTodoEdit:
             items = read_items_by_date(storage_file, "2026-06-16")
             assert "extra info" in items["todos"][0]["details"]
 
+    def test_todo_edit_append_detail_multiple(self):
+        """Issue #54: Multiple --append-detail calls append multiple details."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            # Append multiple details
+            result = run_cli(
+                [
+                    "todo",
+                    "edit",
+                    "--id",
+                    todo_id,
+                    "--append-detail",
+                    "first detail",
+                    "--append-detail",
+                    "second detail",
+                ],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["todos"][0]["details"] == ["first detail", "second detail"]
+
     def test_todo_edit_set_detail(self):
-        """Todo edit --set-detail replaces all details."""
+        """Todo edit --set-detail replaces all details (newline-separated)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(["todo", "add", "task", "--date", "2026-06-16", "--detail", "old"], cwd=Path(tmpdir))
@@ -89,8 +120,9 @@ class TestTodoEdit:
             assert match is not None
             todo_id = match.group(1)
 
+            # Issue #54: Use \n separator instead of multiple --set-detail flags
             result = run_cli(
-                ["todo", "edit", "--id", todo_id, "--set-detail", "new 1", "--set-detail", "new 2"],
+                ["todo", "edit", "--id", todo_id, "--set-detail", "new 1\nnew 2"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
