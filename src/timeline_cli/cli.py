@@ -144,12 +144,10 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
     # todo complete (Issue #45: use --id)
     complete_parser = subparsers.add_parser("complete", help="Complete a todo")
     complete_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
-    complete_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
     # todo abandon (Issue #45: use --id)
     abandon_parser = subparsers.add_parser("abandon", help="Abandon a todo")
     abandon_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
-    abandon_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
     # todo edit (Issue #45: use --id)
     edit_parser = subparsers.add_parser("edit", help="Edit a todo")
@@ -159,13 +157,11 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--clear-time", action="store_true", help="Clear time field")
     edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
-    edit_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
     # todo delete (Issue #45: use --id)
     delete_parser = subparsers.add_parser("delete", help="Delete a todo")
     delete_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
     delete_parser.add_argument("--yes", action="store_true", help="Skip confirmation")
-    delete_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
 
 def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
@@ -189,15 +185,13 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
-    edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
+edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
-    edit_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
     # event delete (Issue #46: use --id)
     delete_parser = subparsers.add_parser("delete", help="Delete an event")
     delete_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     delete_parser.add_argument("--yes", action="store_true", help="Skip confirmation")
-    delete_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
 
 def _setup_note_commands(subparsers: argparse._SubParsersAction) -> None:

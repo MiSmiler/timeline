@@ -42,7 +42,12 @@ def handle_todo_add(args) -> None:
 
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Added todo [{todo_id}]: {args.text}")
+
+    # Git-style output: [id] Added: text (date time) or [id] Added: text (date)
+    if args.time:
+        print(f"[{todo_id}] Added: {args.text} ({args.date} {args.time})")
+    else:
+        print(f"[{todo_id}] Added: {args.text} ({args.date})")
 
 
 def handle_todo_list(args) -> None:
@@ -88,7 +93,7 @@ def handle_todo_complete(args) -> None:
     todo.status = "completed"
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Completed [{args.id}]: {todo.text}")
+    print(f"[{args.id}] Completed: {todo.text}")
 
 
 def handle_todo_abandon(args) -> None:
@@ -105,7 +110,7 @@ def handle_todo_abandon(args) -> None:
     todo.status = "abandoned"
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Abandoned [{args.id}]: {todo.text}")
+    print(f"[{args.id}] Abandoned: {todo.text}")
 
 
 def handle_todo_edit(args) -> None:
@@ -120,20 +125,37 @@ def handle_todo_edit(args) -> None:
 
     date, record, idx, todo = result
 
-    # Apply edits
+    # Track changes for diff-style output
+    changes = []
+
+    # Apply edits and track changes
     if args.new_text:
+        old_text = todo.text
         todo.text = args.new_text
+        changes.append(("text", old_text, args.new_text))
+
     if args.new_time:
+        old_time = todo.time or "(no time)"
         todo.time = args.new_time
+        changes.append(("time", old_time, args.new_time))
+
     if args.clear_time:
+        old_time = todo.time or "(no time)"
         todo.time = None
+        changes.append(("time", old_time, "(cleared)"))
+
     if args.append_detail:
+if args.append_detail:
         # Issue #54: Support multiple --append-detail calls
         for detail in args.append_detail:
             todo.details.append(detail)
+            changes.append(("detail", None, detail, "append"))
     if args.set_detail:
         # Issue #54: Parse \n-separated details
+        old_details = ", ".join(todo.details) if todo.details else "(no details)"
+        new_details = ", ".join([line for line in args.set_detail.split("\n") if line.strip()])
         todo.details = [line for line in args.set_detail.split("\n") if line.strip()]
+        changes.append(("details", old_details, new_details))
 
     # Re-sort if time changed
     if args.new_time or args.clear_time:
@@ -141,21 +163,31 @@ def handle_todo_edit(args) -> None:
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
-    # Output based on format
-    if args.output == "json":
-        import json
-
-        output = {
-            "id": todo.id,
-            "date": date,
-            "text": todo.text,
-            "time": todo.time,
-            "status": todo.status,
-            "details": todo.details,
-        }
-        print(json.dumps(output))
-    else:
-        print(f"Edited [{args.id}]: {todo.text}")
+    # Git-style output
+    if len(changes) == 1:
+        # Single change: concise format
+        change_type, old, new = changes[0][0], changes[0][1], changes[0][2]
+        if change_type == "text":
+            print(f"[{args.id}] Edited: {old} → {new}")
+        elif change_type == "time":
+            print(f"[{args.id}] Edited: time: {old} → {new}")
+        elif change_type == "details":
+            print(f"[{args.id}] Edited: details: {old} → {new}")
+        elif change_type == "detail" and changes[0][3] == "append":
+            print(f"[{args.id}] Edited: + detail: {new}")
+    elif len(changes) > 1:
+        # Multiple changes: multi-line diff
+        print(f"[{args.id}] Edited:")
+        for change in changes:
+            change_type = change[0]
+            if change_type == "text":
+                print(f"  text: {change[1]} → {change[2]}")
+            elif change_type == "time":
+                print(f"  time: {change[1]} → {change[2]}")
+            elif change_type == "details":
+                print(f"  details: {change[1]} → {change[2]}")
+            elif change_type == "detail" and change[3] == "append":
+                print(f"  + detail: {change[2]}")
 
 
 def handle_todo_delete(args) -> None:
@@ -182,4 +214,4 @@ def handle_todo_delete(args) -> None:
     record.todos.pop(idx)
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Deleted [{args.id}]: {todo.text}")
+    print(f"[{args.id}] Deleted: {todo.text}")

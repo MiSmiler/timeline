@@ -30,6 +30,22 @@ class TestEventAdd:
             assert items["events"][0]["time"] == "14:30"
             assert items["events"][0]["text"] == "meeting"
 
+    def test_event_add_output_format(self):
+        """Event add outputs git-style format: [id] Added: text at time."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "team meeting", "--date", "2026-06-18", "--time", "14:00"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should output: [eXXXXX] Added: team meeting at 14:00
+            import re
+
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            assert "] Added: team meeting at 14:00" in result.stdout
+
     def test_event_add_with_detail(self):
         """Event add with --detail parameter."""
         with tempfile.TemporaryDirectory() as tmpdir:

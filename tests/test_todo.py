@@ -95,6 +95,32 @@ class TestTodoAdd:
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["todos"]) == 2
 
+    def test_todo_add_output_format(self):
+        """Todo add outputs git-style format: [id] Added: text (date time)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["todo", "add", "Review PR", "--date", "2026-06-18", "--time", "15:00"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should output: [tXXXXX] Added: Review PR (2026-06-18 15:00)
+            assert "[t" in result.stdout
+            assert "] Added: Review PR (2026-06-18 15:00)" in result.stdout
+
+    def test_todo_add_output_format_no_time(self):
+        """Todo add outputs git-style format without time: [id] Added: text (date)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["todo", "add", "Write tests", "--date", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should output: [tXXXXX] Added: Write tests (2026-06-18)
+            assert "[t" in result.stdout
+            assert "] Added: Write tests (2026-06-18)" in result.stdout
+
 
 class TestTodoList:
     """Tests for todo list command (new API: --range required)."""
@@ -182,3 +208,51 @@ class TestTodoList:
             assert "unit tests" in result.stdout
             assert "docs" in result.stdout
             assert "review" not in result.stdout
+
+
+class TestTodoComplete:
+    """Tests for todo complete command output format."""
+
+    def test_todo_complete_output_format(self):
+        """Todo complete outputs git-style format: [id] Completed: text."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "Review PR", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Extract ID
+            import re
+
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            # Complete the todo
+            result = run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            # Should output: [tXXXXX] Completed: Review PR
+            assert f"[{todo_id}] Completed: Review PR" in result.stdout
+
+
+class TestTodoAbandon:
+    """Tests for todo abandon command output format."""
+
+    def test_todo_abandon_output_format(self):
+        """Todo abandon outputs git-style format: [id] Abandoned: text."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "Old task", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Extract ID
+            import re
+
+            match = re.search(r"\[(t[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+
+            # Abandon the todo
+            result = run_cli(["todo", "abandon", "--id", todo_id], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            # Should output: [tXXXXX] Abandoned: Old task
+            assert f"[{todo_id}] Abandoned: Old task" in result.stdout
