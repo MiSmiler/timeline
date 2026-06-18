@@ -45,6 +45,28 @@ def parse_datetime(value: str) -> datetime | date:
     return date.fromisoformat(value)
 
 
+def normalize_date_string(value: str) -> str:
+    """Normalize a date string, converting relative keywords to YYYY-MM-DD format.
+
+    Args:
+        value: Date string (may be relative keyword like "yesterday" or "tomorrow")
+
+    Returns:
+        Date string in YYYY-MM-DD format (or special date like "0000-00-00")
+    """
+    # Special case: undated items (0000-00-00)
+    if value == "0000-00-00":
+        return value
+
+    parsed = parse_datetime(value)
+    if isinstance(parsed, datetime):
+        # Convert datetime to date string
+        return parsed.date().isoformat()
+    else:
+        # Already a date
+        return parsed.isoformat()
+
+
 def parse_range(range_str: str, now: datetime | None = None) -> DateRange:
     """Parse --range parameter string.
 

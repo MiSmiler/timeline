@@ -4,7 +4,7 @@ import sys
 
 from timeline_cli.models import Todo
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_todos
-from timeline_cli.range_parser import filter_todos_by_range, parse_range
+from timeline_cli.range_parser import filter_todos_by_range, normalize_date_string, parse_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -19,7 +19,9 @@ from timeline_cli.storage import (
 def handle_todo_add(args) -> None:
     """Handle todo add command (Issue #45: TEXT --date DATE --time TIME)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
-    record = get_or_create_daily_record(timeline, args.date)
+    # Normalize relative date keywords to YYYY-MM-DD format
+    normalized_date = normalize_date_string(args.date)
+    record = get_or_create_daily_record(timeline, normalized_date)
 
     # Generate unique ID
     existing_ids = collect_existing_ids(timeline)
