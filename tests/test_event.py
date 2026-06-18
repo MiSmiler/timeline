@@ -124,30 +124,19 @@ class TestEventList:
             assert "12:00" in result.stdout
             assert "lunch" in result.stdout
 
-    def test_event_list_output_json(self):
-        """Event list --output json outputs JSON."""
+    def test_event_list_json_output(self):
+        """Event list --json outputs JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "--range", "2026-06-16", "--output", "json"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             data = json.loads(result.stdout)
             assert isinstance(data, list)
             assert len(data) == 1
             assert data[0]["time"] == "14:30"
-
-    def test_event_list_output_simple(self):
-        """Event list --output simple outputs simple text."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
-
-            result = run_cli(["event", "list", "--range", "2026-06-16", "--output", "simple"], cwd=Path(tmpdir))
-            assert result.returncode == 0
-            assert "14:30" in result.stdout
-            assert "meeting" in result.stdout
 
     def test_event_list_contains_filter(self):
         """Event list --contains filters by substring."""

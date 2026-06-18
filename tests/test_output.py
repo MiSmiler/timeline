@@ -1,4 +1,4 @@
-"""Tests for --output and --contains parameters (Issue #44)."""
+"""Tests for output format simplification (Issue #51)."""
 
 import json
 import tempfile
@@ -7,99 +7,147 @@ from pathlib import Path
 from conftest import run_cli
 
 
-class TestOutputParameter:
-    """Tests for --output parameter."""
+class TestMarkdownOutput:
+    """Tests for markdown output format (Issue #51)."""
 
-    def test_todo_list_output_json(self):
-        """Todo list --output json should output JSON."""
+    def test_todo_list_default_markdown(self):
+        """Todo list should default to markdown output."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Buy groceries", "--date", "2026-06-18"], cwd=Path(tmpdir))
 
-            # List with --output json (new API)
+            # List without --output flag (should be markdown by default)
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-16", "--output", "json"],
+                ["todo", "list", "--range", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
+            # Markdown should have date as header
+            assert "# 2026-06-18" in result.stdout
+            assert "Buy groceries" in result.stdout
 
-            # Verify JSON output
-            data = json.loads(result.stdout)
-            assert len(data) == 1
-            assert data[0]["text"] == "task"
-
-    def test_todo_list_output_simple(self):
-        """Todo list --output simple should output simple format."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
-
-            # List with --output simple (new API)
-            result = run_cli(
-                ["todo", "list", "--range", "2026-06-16", "--output", "simple"],
-                cwd=Path(tmpdir),
-            )
-            assert result.returncode == 0
-            assert "2026-06-16" in result.stdout
-            assert "task" in result.stdout
-
-    def test_todo_list_output_table(self):
-        """Todo list --output table should output table format."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
-
-            # List with --output table (default, new API)
-            result = run_cli(
-                ["todo", "list", "--range", "2026-06-16", "--output", "table"],
-                cwd=Path(tmpdir),
-            )
-            assert result.returncode == 0
-            assert "Date" in result.stdout or "ID" in result.stdout  # Header
-
-    def test_event_list_output_json(self):
-        """Event list --output json should output JSON."""
+    def test_todo_list_markdown_with_time(self):
+        """Todo list markdown should show time if present."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["todo", "add", "Meeting", "--date", "2026-06-18", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
 
-            # List with --output json
+            # List
             result = run_cli(
-                ["event", "list", "--range", "2026-06-16", "--output", "json"],
+                ["todo", "list", "--range", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
-
-            # Verify JSON output
-            data = json.loads(result.stdout)
-            assert len(data) == 1
-            assert data[0]["text"] == "meeting"
-
-    def test_event_list_output_simple(self):
-        """Event list --output simple should output simple format."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup
-            run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
-                cwd=Path(tmpdir),
-            )
-
-            # List with --output simple
-            result = run_cli(
-                ["event", "list", "--range", "2026-06-16", "--output", "simple"],
-                cwd=Path(tmpdir),
-            )
-            assert result.returncode == 0
+            assert "# 2026-06-18" in result.stdout
             assert "14:30" in result.stdout
-            assert "meeting" in result.stdout
+            assert "Meeting" in result.stdout
+
+    def test_todo_list_json_flag(self):
+        """Todo list --json should output JSON format."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 1", "--date", "2026-06-18"], cwd=Path(tmpdir))
+
+            # List with --json flag
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18", "--json"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Verify JSON output
+            data = json.loads(result.stdout)
+            assert len(data) == 1
+            assert data[0]["text"] == "Task 1"
+
+    def test_todo_list_markdown_grouped_by_date(self):
+        """Todo list markdown should group todos by date."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 1", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 2", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 3", "--date", "2026-06-18"], cwd=Path(tmpdir))
+
+            # List
+            result = run_cli(
+                ["todo", "list", "--range", ".."],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should have two date headers
+            assert "# 2026-06-17" in result.stdout
+            assert "# 2026-06-18" in result.stdout
+            assert "Task 1" in result.stdout
+            assert "Task 2" in result.stdout
+            assert "Task 3" in result.stdout
+
+    def test_todo_list_markdown_with_details(self):
+        """Todo list markdown should show details indented under item."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(
+                ["todo", "add", "Buy groceries", "--date", "2026-06-18", "--detail", "Milk", "--detail", "Bread"],
+                cwd=Path(tmpdir),
+            )
+
+            # List
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert "# 2026-06-18" in result.stdout
+            assert "Buy groceries" in result.stdout
+            # Details should be indented
+            assert "  - Milk" in result.stdout
+            assert "  - Bread" in result.stdout
+
+    def test_todo_list_markdown_with_show_id(self):
+        """Todo list --show-id should show ID in markdown."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["todo", "add", "Task 1", "--date", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            # Extract ID from output: "Added todo [t7b3k]: Task 1"
+            todo_id = result.stdout.split("[")[1].split("]")[0]
+
+            # List with --show-id
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18", "--show-id"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert "# 2026-06-18" in result.stdout
+            # Should show ID in format (t7b3k)
+            assert f"({todo_id})" in result.stdout
+            assert "Task 1" in result.stdout
+
+    def test_todo_list_markdown_undated(self):
+        """Todo list markdown should show undated todos under # Undated header."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup - create undated todo (no time)
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Sometime task", "--date", "0000-00-00"], cwd=Path(tmpdir))
+
+            # List with --range ? (undated items)
+            result = run_cli(
+                ["todo", "list", "--range", "?"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert "# Undated" in result.stdout
+            assert "Sometime task" in result.stdout
 
 
 class TestContainsParameter:

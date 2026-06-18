@@ -143,7 +143,8 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
         required=True,
         help="Date/time range (e.g., 'today', '..now', '2026-06-01..2026-06-30', '?')",
     )
-    list_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
+    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    list_parser.add_argument("--show-id", action="store_true", help="Show todo IDs in output")
     list_parser.add_argument("--contains", help="Filter by text substring")
     list_parser.add_argument("--time", help="Filter by time (HH:MM)")
     list_parser.add_argument("--status", choices=["pending", "completed", "abandoned"], help="Filter by status")
@@ -187,7 +188,8 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     # event list (Issue #46: --range required)
     list_parser = subparsers.add_parser("list", help="List events")
     list_parser.add_argument("--range", required=True, help="Date/time range (e.g., 'today', '2026-06-01..2026-06-30')")
-    list_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
+    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    list_parser.add_argument("--show-id", action="store_true", help="Show event IDs in output")
     list_parser.add_argument("--contains", help="Filter by text substring")
 
     # event edit (Issue #46: use --id)

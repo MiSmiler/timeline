@@ -128,7 +128,7 @@ class TestRangeParameter:
             assert "meeting 17" not in result.stdout
 
     def test_event_list_with_range_json(self):
-        """Event list --range --output json should include date field."""
+        """Event list --range --json should include date field."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
@@ -137,9 +137,9 @@ class TestRangeParameter:
                 cwd=Path(tmpdir),
             )
 
-            # List with --range and --output json
+            # List with --range and --json
             result = run_cli(
-                ["event", "list", "--range", "2026-06-16", "--output", "json"],
+                ["event", "list", "--range", "2026-06-16", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

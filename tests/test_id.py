@@ -90,35 +90,39 @@ class TestIDDisplay:
     """Tests for ID display in list commands."""
 
     def test_todo_list_shows_id(self):
-        """Todo list should display ID column."""
+        """Todo list --show-id should display ID."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            # Extract ID from output: "Added todo [t7b3k]: task"
+            todo_id = result.stdout.split("[")[1].split("]")[0]
 
-            # List todos (new API: --range required)
-            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
+            # List todos with --show-id
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--show-id"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            # Verify ID column in output
-            assert "ID" in result.stdout
+            # Verify ID in output (format: (t7b3k))
+            assert f"({todo_id})" in result.stdout
 
     def test_event_list_shows_id(self):
-        """Event list should display ID column."""
+        """Event list --show-id should display ID."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(
+            result = run_cli(
                 ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
                 cwd=Path(tmpdir),
             )
+            # Extract ID from output: "Added event [e4x1m]: meeting at 14:30"
+            event_id = result.stdout.split("[")[1].split("]")[0]
 
-            # List events
-            result = run_cli(["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
+            # List events with --show-id
+            result = run_cli(["event", "list", "--range", "2026-06-16", "--show-id"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            # Verify ID column in output
-            assert "ID" in result.stdout
+            # Verify ID in output (format: (e4x1m))
+            assert f"({event_id})" in result.stdout
 
     def test_json_output_includes_id(self):
         """JSON output should include id field."""
@@ -127,8 +131,8 @@ class TestIDDisplay:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
-            # List todos with JSON (new API)
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--output", "json"], cwd=Path(tmpdir))
+            # List todos with --json
+            result = run_cli(["todo", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Parse JSON output

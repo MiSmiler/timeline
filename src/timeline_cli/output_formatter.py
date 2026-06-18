@@ -1,4 +1,4 @@
-"""Output formatter for timeline-cli --output parameter."""
+"""Output formatter for timeline-cli."""
 
 import json
 from enum import Enum
@@ -11,41 +11,50 @@ if TYPE_CHECKING:
 class OutputFormat(Enum):
     """Output format options."""
 
-    TABLE = "table"
+    MARKDOWN = "markdown"
     JSON = "json"
-    SIMPLE = "simple"
 
 
-def format_todos_table(todos: list[tuple[str, "Todo"]]) -> str:
-    """Format todos as table.
+def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False) -> str:
+    """Format todos as markdown.
 
     Args:
         todos: List of (date, todo) tuples
+        show_id: Whether to show todo ID
 
     Returns:
-        Formatted table string
+        Markdown formatted string
     """
     if not todos:
         return "No todos found"
 
-    # Check if any todo has ID
-    has_id = any(todo.id for _, todo in todos)
+    # Group by date
+    groups: dict[str, list[Todo]] = {}
+    for date, todo in todos:
+        if date not in groups:
+            groups[date] = []
+        groups[date].append(todo)
 
-    if has_id:
-        lines = [f"{'ID':<8} {'Date':<12} {'Time':<8} {'Status':<10} {'Text'}"]
-        lines.append("-" * 60)
-        for date, todo in todos:
-            id_str = todo.id or "-"
-            time_str = todo.time or "-"
-            lines.append(f"{id_str:<8} {date:<12} {time_str:<8} {todo.status:<10} {todo.text}")
-    else:
-        lines = [f"{'Date':<12} {'Time':<8} {'Status':<10} {'Text'}"]
-        lines.append("-" * 50)
-        for date, todo in todos:
-            time_str = todo.time or "-"
-            lines.append(f"{date:<12} {time_str:<8} {todo.status:<10} {todo.text}")
+    lines = []
+    for date in sorted(groups.keys()):
+        # Use "Undated" for null date
+        header = "# Undated" if date == "0000-00-00" else f"# {date}"
+        lines.append(header)
 
-    return "\n".join(lines)
+        for todo in groups[date]:
+            # Format: [time] text or just text
+            time_str = f"{todo.time} " if todo.time else "- "
+            id_str = f"({todo.id}) " if show_id and todo.id else ""
+            status_str = f"[{todo.status}]"
+            lines.append(f"- {time_str}{id_str}{status_str} {todo.text}")
+
+            # Add details indented
+            for detail in todo.details:
+                lines.append(f"  - {detail}")
+
+        lines.append("")  # Blank line after each date group
+
+    return "\n".join(lines).rstrip()
 
 
 def format_todos_json(todos: list[tuple[str, "Todo"]]) -> str:
@@ -71,70 +80,60 @@ def format_todos_json(todos: list[tuple[str, "Todo"]]) -> str:
     return json.dumps(data, indent=2)
 
 
-def format_todos_simple(todos: list[tuple[str, "Todo"]]) -> str:
-    """Format todos as simple text.
-
-    Args:
-        todos: List of (date, todo) tuples
-
-    Returns:
-        Simple text string
-    """
-    lines = []
-    for date, todo in todos:
-        id_str = f"[{todo.id}] " if todo.id else ""
-        time_str = todo.time or "undated"
-        status_str = f"[{todo.status}]"
-        lines.append(f"{id_str}{date} {time_str} {status_str} {todo.text}")
-    return "\n".join(lines)
-
-
-def format_todos(todos: list[tuple[str, "Todo"]], format: OutputFormat) -> str:
+def format_todos(todos: list[tuple[str, "Todo"]], format: OutputFormat, show_id: bool = False) -> str:
     """Format todos according to output format.
 
     Args:
         todos: List of (date, todo) tuples
         format: Output format
+        show_id: Whether to show todo ID (only for markdown)
 
     Returns:
         Formatted string
     """
     if format == OutputFormat.JSON:
         return format_todos_json(todos)
-    elif format == OutputFormat.SIMPLE:
-        return format_todos_simple(todos)
     else:
-        return format_todos_table(todos)
+        return format_todos_markdown(todos, show_id)
 
 
-def format_events_table(events: list[tuple[str, "Event"]]) -> str:
-    """Format events as table.
+def format_events_markdown(events: list[tuple[str, "Event"]], show_id: bool = False) -> str:
+    """Format events as markdown.
 
     Args:
         events: List of (date, event) tuples
+        show_id: Whether to show event ID
 
     Returns:
-        Formatted table string
+        Markdown formatted string
     """
     if not events:
         return "No events found"
 
-    # Check if any event has ID
-    has_id = any(event.id for _, event in events)
+    # Group by date
+    groups: dict[str, list[Event]] = {}
+    for date, event in events:
+        if date not in groups:
+            groups[date] = []
+        groups[date].append(event)
 
-    if has_id:
-        lines = [f"{'ID':<8} {'Date':<12} {'Time':<8} {'Text'}"]
-        lines.append("-" * 50)
-        for date, event in events:
-            id_str = event.id or "-"
-            lines.append(f"{id_str:<8} {date:<12} {event.time:<8} {event.text}")
-    else:
-        lines = [f"{'Date':<12} {'Time':<8} {'Text'}"]
-        lines.append("-" * 40)
-        for date, event in events:
-            lines.append(f"{date:<12} {event.time:<8} {event.text}")
+    lines = []
+    for date in sorted(groups.keys()):
+        header = f"# {date}"
+        lines.append(header)
 
-    return "\n".join(lines)
+        for event in groups[date]:
+            # Format: time text
+            id_str = f"({event.id}) " if show_id and event.id else ""
+            lines.append(f"- {event.time} {id_str}{event.text}")
+
+            # Add details indented
+            for detail in event.details:
+                lines.append(f"  - {detail}")
+
+        lines.append("")  # Blank line after each date group
+
+    return "\n".join(lines).rstrip()
 
 
 def format_events_json(events: list[tuple[str, "Event"]]) -> str:
@@ -159,38 +158,21 @@ def format_events_json(events: list[tuple[str, "Event"]]) -> str:
     return json.dumps(data, indent=2)
 
 
-def format_events_simple(events: list[tuple[str, "Event"]]) -> str:
-    """Format events as simple text.
-
-    Args:
-        events: List of (date, event) tuples
-
-    Returns:
-        Simple text string
-    """
-    lines = []
-    for date, event in events:
-        id_str = f"[{event.id}] " if event.id else ""
-        lines.append(f"{id_str}{date} {event.time} {event.text}")
-    return "\n".join(lines)
-
-
-def format_events(events: list[tuple[str, "Event"]], format: OutputFormat) -> str:
+def format_events(events: list[tuple[str, "Event"]], format: OutputFormat, show_id: bool = False) -> str:
     """Format events according to output format.
 
     Args:
         events: List of (date, event) tuples
         format: Output format
+        show_id: Whether to show event ID (only for markdown)
 
     Returns:
         Formatted string
     """
     if format == OutputFormat.JSON:
         return format_events_json(events)
-    elif format == OutputFormat.SIMPLE:
-        return format_events_simple(events)
     else:
-        return format_events_table(events)
+        return format_events_markdown(events, show_id)
 
 
 def filter_by_contains(items: list[tuple[str, "Todo"] | tuple[str, "Event"]], text: str):

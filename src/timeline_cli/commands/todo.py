@@ -60,10 +60,11 @@ def handle_todo_list(args) -> None:
         todos_with_dates = filter_by_contains(todos_with_dates, args.contains)
 
     # Determine output format
-    output_format = OutputFormat(args.output)
+    output_format = OutputFormat.JSON if getattr(args, "json", False) else OutputFormat.MARKDOWN
+    show_id = getattr(args, "show_id", False)
 
     # Output
-    print(format_todos(todos_with_dates, output_format))
+    print(format_todos(todos_with_dates, output_format, show_id))
 
 
 def _sort_todos(todos: list[Todo]) -> None:

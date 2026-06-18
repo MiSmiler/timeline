@@ -55,10 +55,11 @@ def handle_event_list(args) -> None:
         events_with_dates = filter_by_contains(events_with_dates, args.contains)
 
     # Determine output format
-    output_format = OutputFormat(args.output)
+    output_format = OutputFormat.JSON if getattr(args, "json", False) else OutputFormat.MARKDOWN
+    show_id = getattr(args, "show_id", False)
 
     # Output
-    print(format_events(events_with_dates, output_format))
+    print(format_events(events_with_dates, output_format, show_id))
 
 
 def handle_event_edit(args) -> None:
