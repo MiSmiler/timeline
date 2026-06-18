@@ -186,3 +186,46 @@ def filter_by_contains(items: list[tuple[str, "Todo"] | tuple[str, "Event"]], te
         Filtered list
     """
     return [(d, item) for d, item in items if text in item.text]
+
+
+def format_dates_list_markdown(dates_data: dict[str, dict]) -> str:
+    """Format dates list as markdown with counts.
+
+    Args:
+        dates_data: Dictionary mapping date to {"events": count, "todos": count, "notes": count}
+
+    Returns:
+        Markdown formatted string like:
+        - 2026-06-17 (3 events, 5 todos, 1 note)
+        - 2026-06-18 (2 events, 3 todos, 1 note)
+    """
+    if not dates_data:
+        return "No dates found"
+
+    lines = []
+    for date in sorted(dates_data.keys()):
+        counts = dates_data[date]
+        event_count = counts.get("events", 0)
+        todo_count = counts.get("todos", 0)
+        note_count = counts.get("notes", 0)
+
+        # Format: - YYYY-MM-DD (X event(s), Y todo(s), Z note(s))
+        event_str = f"{event_count} event{'s' if event_count != 1 else ''}"
+        todo_str = f"{todo_count} todo{'s' if todo_count != 1 else ''}"
+        note_str = f"{note_count} note{'s' if note_count != 1 else ''}"
+
+        lines.append(f"- {date} ({event_str}, {todo_str}, {note_str})")
+
+    return "\n".join(lines)
+
+
+def format_dates_list_json(dates: list[str]) -> str:
+    """Format dates list as JSON.
+
+    Args:
+        dates: List of date strings
+
+    Returns:
+        JSON string
+    """
+    return json.dumps(dates, indent=2)

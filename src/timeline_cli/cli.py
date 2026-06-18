@@ -232,7 +232,7 @@ def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
 
     # list
     list_parser = subparsers.add_parser("list", help="List all dates")
-    list_parser.add_argument("--output", choices=["table", "json"], default="table", help="Output format")
+    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Validate data integrity")
