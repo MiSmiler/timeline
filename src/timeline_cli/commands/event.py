@@ -4,7 +4,7 @@ import sys
 
 from timeline_cli.models import Event
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_events
-from timeline_cli.range_parser import filter_events_by_range, parse_range
+from timeline_cli.range_parser import filter_events_by_range, normalize_date_string, parse_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -19,7 +19,9 @@ from timeline_cli.storage import (
 def handle_event_add(args) -> None:
     """Handle event add command (Issue #46: TEXT --date DATE --time TIME)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
-    record = get_or_create_daily_record(timeline, args.date)
+    # Normalize relative date keywords to YYYY-MM-DD format
+    normalized_date = normalize_date_string(args.date)
+    record = get_or_create_daily_record(timeline, normalized_date)
 
     # Generate unique ID
     existing_ids = collect_existing_ids(timeline)

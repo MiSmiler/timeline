@@ -21,13 +21,19 @@ def parse_datetime(value: str) -> datetime | date:
     """Parse a datetime or date string.
 
     Args:
-        value: String like "2026-06-17", "2026-06-17T14:30", "today", or "now"
+        value: String like "2026-06-17", "2026-06-17T14:30", "today", "yesterday", "tomorrow", or "now"
 
     Returns:
         datetime or date object
     """
+    from datetime import timedelta
+
     if value == "today":
         return date.today()
+    if value == "yesterday":
+        return date.today() - timedelta(days=1)
+    if value == "tomorrow":
+        return date.today() + timedelta(days=1)
     if value == "now":
         return datetime.now()
 
@@ -39,12 +45,34 @@ def parse_datetime(value: str) -> datetime | date:
     return date.fromisoformat(value)
 
 
+def normalize_date_string(value: str) -> str:
+    """Normalize a date string, converting relative keywords to YYYY-MM-DD format.
+
+    Args:
+        value: Date string (may be relative keyword like "yesterday" or "tomorrow")
+
+    Returns:
+        Date string in YYYY-MM-DD format (or special date like "0000-00-00")
+    """
+    # Special case: undated items (0000-00-00)
+    if value == "0000-00-00":
+        return value
+
+    parsed = parse_datetime(value)
+    if isinstance(parsed, datetime):
+        # Convert datetime to date string
+        return parsed.date().isoformat()
+    else:
+        # Already a date
+        return parsed.isoformat()
+
+
 def parse_range(range_str: str, now: datetime | None = None) -> DateRange:
     """Parse --range parameter string.
 
     Supported formats:
     - ".." = all (no bounds)
-    - "today" = today's date
+    - "today" / "yesterday" / "tomorrow" = relative date
     - "..today" / "today.." = relative to today
     - "YYYY-MM-DD.." / "..YYYY-MM-DD" = relative to date
     - "YYYY-MM-DD..YYYY-MM-DD" = date range
