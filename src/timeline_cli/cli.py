@@ -109,14 +109,6 @@ def _dispatch(args: argparse.Namespace) -> None:
         from timeline_cli.commands.list import handle_list
 
         handle_list(args)
-    elif args.resource == "export":
-        from timeline_cli.commands.export import handle_export
-
-        handle_export(args)
-    elif args.resource == "export-all":
-        from timeline_cli.commands.export import handle_export_all
-
-        handle_export_all(args)
     elif args.resource == "doctor":
         from timeline_cli.commands.doctor import handle_doctor
 
@@ -233,15 +225,6 @@ def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
     # list
     list_parser = subparsers.add_parser("list", help="List all dates")
     list_parser.add_argument("--output", choices=["table", "json"], default="table", help="Output format")
-
-    # export
-    export_parser = subparsers.add_parser("export", help="Export a date as markdown")
-    export_parser.add_argument("date", help="Date in YYYY-MM-DD format")
-    export_parser.add_argument("--output-dir", required=True, help="Output directory")
-
-    # export-all
-    export_all_parser = subparsers.add_parser("export-all", help="Export all dates as markdown")
-    export_all_parser.add_argument("--output-dir", required=True, help="Output directory")
 
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Validate data integrity")
