@@ -1,6 +1,5 @@
 """Tests for doctor command (#18)."""
 
-import json
 import tempfile
 from pathlib import Path
 

@@ -1,6 +1,5 @@
 """Tests for event edit commands (Issue #46 refactored)."""
 
-import json
 import re
 import tempfile
 from pathlib import Path
@@ -86,8 +85,43 @@ class TestEventEdit:
             items = read_items_by_date(storage_file, "2026-06-16")
             assert "notes" in items["events"][0]["details"]
 
+    def test_event_edit_append_detail_multiple(self):
+        """Issue #54: Multiple --append-detail calls append multiple details."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
+
+            # Append multiple details
+            result = run_cli(
+                [
+                    "event",
+                    "edit",
+                    "--id",
+                    event_id,
+                    "--append-detail",
+                    "first note",
+                    "--append-detail",
+                    "second note",
+                ],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            items = read_items_by_date(storage_file, "2026-06-16")
+            assert items["events"][0]["details"] == ["first note", "second note"]
+
     def test_event_edit_set_detail(self):
-        """Event edit --set-detail replaces all details."""
+        """Event edit --set-detail replaces all details (newline-separated)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
@@ -101,17 +135,9 @@ class TestEventEdit:
             assert match is not None
             event_id = match.group(1)
 
+            # Issue #54: Use \n separator instead of multiple --set-detail flags
             result = run_cli(
-                [
-                    "event",
-                    "edit",
-                    "--id",
-                    event_id,
-                    "--set-detail",
-                    "new 1",
-                    "--set-detail",
-                    "new 2",
-                ],
+                ["event", "edit", "--id", event_id, "--set-detail", "new 1\nnew 2"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

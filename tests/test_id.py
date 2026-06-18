@@ -76,6 +76,7 @@ class TestIDGeneration:
             # Verify IDs are unique
             storage_file = Path(tmpdir) / ".timelines.jsonl"
             from conftest import read_items_from_storage
+
             items = read_items_from_storage(storage_file)
 
             ids = []

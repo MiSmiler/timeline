@@ -135,11 +135,13 @@ class Timeline:
 
             # Add note (if exists)
             if record.notes is not None:
-                items.append({
-                    "type": "note",
-                    "date": date,
-                    "text": record.notes,
-                })
+                items.append(
+                    {
+                        "type": "note",
+                        "date": date,
+                        "text": record.notes,
+                    }
+                )
 
         # Sort items by (date, type, time)
         def sort_key(item: dict) -> tuple:

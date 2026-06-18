@@ -164,8 +164,8 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
     edit_parser.add_argument("--clear-time", action="store_true", help="Clear time field")
-    edit_parser.add_argument("--append-detail", help="Append a detail line")
-    edit_parser.add_argument("--set-detail", action="append", help="Replace all details")
+    edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
+    edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
     edit_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
     # todo delete (Issue #45: use --id)
@@ -195,8 +195,8 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
-    edit_parser.add_argument("--append-detail", help="Append a detail line")
-    edit_parser.add_argument("--set-detail", action="append", help="Replace all details")
+    edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
+    edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
     edit_parser.add_argument("--output", choices=["table", "json", "simple"], default="table", help="Output format")
 
     # event delete (Issue #46: use --id)
