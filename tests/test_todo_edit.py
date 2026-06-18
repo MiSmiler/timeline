@@ -192,7 +192,7 @@ class TestTodoEdit:
             todo_id = match.group(1)
 
             result = run_cli(
-                ["todo", "edit", "--id", todo_id, "--set-detail", "new 1", "--set-detail", "new 2"],
+                ["todo", "edit", "--id", todo_id, "--set-detail", "new 1\nnew 2"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

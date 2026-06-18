@@ -30,6 +30,16 @@ def main() -> None:
     note_subparsers = note_parser.add_subparsers(dest="action", help="Note action")
     _setup_note_commands(note_subparsers)
 
+    # Diary command
+    diary_parser = subparsers.add_parser("diary", help="Show complete daily view")
+    diary_parser.add_argument(
+        "date",
+        nargs="?",
+        default="today",
+        help="Date to show (today/yesterday/tomorrow/YYYY-MM-DD)",
+    )
+    diary_parser.add_argument("--show-id", action="store_true", help="Show item IDs in output")
+
     # Other commands
     _setup_other_commands(subparsers)
 
@@ -105,6 +115,10 @@ def _dispatch(args: argparse.Namespace) -> None:
         else:
             print(f"Note action not implemented: {args.action}")
             sys.exit(1)
+    elif args.resource == "diary":
+        from timeline_cli.commands.diary import handle_diary
+
+        handle_diary(args)
     elif args.resource == "list":
         from timeline_cli.commands.list import handle_list
 
@@ -185,7 +199,7 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
     edit_parser.add_argument("--new-time", help="New time in HH:MM format")
-edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
+    edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
 
     # event delete (Issue #46: use --id)

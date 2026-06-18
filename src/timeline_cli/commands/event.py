@@ -91,7 +91,6 @@ def handle_event_edit(args) -> None:
         changes.append(("time", old_time, args.new_time))
 
     if args.append_detail:
-if args.append_detail:
         # Issue #54: Support multiple --append-detail calls
         for detail in args.append_detail:
             event.details.append(detail)
