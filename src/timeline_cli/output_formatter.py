@@ -77,7 +77,7 @@ def format_todos_json(todos: list[tuple[str, "Todo"]]) -> str:
         }
         for date, todo in todos
     ]
-    return json.dumps(data, indent=2)
+    return json.dumps(data, indent=2, ensure_ascii=False)
 
 
 def format_todos(todos: list[tuple[str, "Todo"]], format: OutputFormat, show_id: bool = False) -> str:
@@ -155,7 +155,7 @@ def format_events_json(events: list[tuple[str, "Event"]]) -> str:
         }
         for date, event in events
     ]
-    return json.dumps(data, indent=2)
+    return json.dumps(data, indent=2, ensure_ascii=False)
 
 
 def format_events(events: list[tuple[str, "Event"]], format: OutputFormat, show_id: bool = False) -> str:
@@ -228,4 +228,4 @@ def format_dates_list_json(dates: list[str]) -> str:
     Returns:
         JSON string
     """
-    return json.dumps(dates, indent=2)
+    return json.dumps(dates, indent=2, ensure_ascii=False)
