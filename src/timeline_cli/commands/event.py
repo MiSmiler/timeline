@@ -39,7 +39,7 @@ def handle_event_add(args) -> None:
 
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Added event [{event_id}]: {args.text} at {args.time}")
+    print(f"[{event_id}] Added: {args.text} at {args.time}")
 
 
 def handle_event_list(args) -> None:
@@ -73,15 +73,29 @@ def handle_event_edit(args) -> None:
 
     date, record, idx, event = result
 
-    # Apply edits
+    # Track changes for diff-style output
+    changes = []
+
+    # Apply edits and track changes
     if args.new_text:
+        old_text = event.text
         event.text = args.new_text
+        changes.append(("text", old_text, args.new_text))
+
     if args.new_time:
+        old_time = event.time
         event.time = args.new_time
+        changes.append(("time", old_time, args.new_time))
+
     if args.append_detail:
         event.details.append(args.append_detail)
+        changes.append(("detail", None, args.append_detail, "append"))
+
     if args.set_detail:
+        old_details = ", ".join(event.details) if event.details else "(no details)"
+        new_details = ", ".join(args.set_detail)
         event.details = args.set_detail
+        changes.append(("details", old_details, new_details))
 
     # Re-sort if time changed
     if args.new_time:
@@ -89,20 +103,31 @@ def handle_event_edit(args) -> None:
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
-    # Output based on format
-    if args.output == "json":
-        import json
-
-        output = {
-            "id": event.id,
-            "date": date,
-            "text": event.text,
-            "time": event.time,
-            "details": event.details,
-        }
-        print(json.dumps(output))
-    else:
-        print(f"Edited [{args.id}]: {event.text}")
+    # Git-style output
+    if len(changes) == 1:
+        # Single change: concise format
+        change_type, old, new = changes[0][0], changes[0][1], changes[0][2]
+        if change_type == "text":
+            print(f"[{args.id}] Edited: {old} → {new}")
+        elif change_type == "time":
+            print(f"[{args.id}] Edited: time: {old} → {new}")
+        elif change_type == "details":
+            print(f"[{args.id}] Edited: details: {old} → {new}")
+        elif change_type == "detail" and changes[0][3] == "append":
+            print(f"[{args.id}] Edited: + detail: {new}")
+    elif len(changes) > 1:
+        # Multiple changes: multi-line diff
+        print(f"[{args.id}] Edited:")
+        for change in changes:
+            change_type = change[0]
+            if change_type == "text":
+                print(f"  text: {change[1]} → {change[2]}")
+            elif change_type == "time":
+                print(f"  time: {change[1]} → {change[2]}")
+            elif change_type == "details":
+                print(f"  details: {change[1]} → {change[2]}")
+            elif change_type == "detail" and change[3] == "append":
+                print(f"  + detail: {change[2]}")
 
 
 def handle_event_delete(args) -> None:
@@ -129,4 +154,4 @@ def handle_event_delete(args) -> None:
     record.events.pop(idx)
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"Deleted [{args.id}]: {event.text}")
+    print(f"[{args.id}] Deleted: {event.text}")
