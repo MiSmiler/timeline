@@ -41,3 +41,9 @@ uv run pytest
 ```
 
 详细说明见 [AGENTS.md](AGENTS.md)。
+
+## Roadmap
+
+- todo list output有问题，markdown格式，把complete打在方括号里了。不过--json输出没问题，所以ai能用。
+- 重新设计一下todo list --json的输出，应该输出jsonline
+- 更新timeline skill的实现
