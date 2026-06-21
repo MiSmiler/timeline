@@ -66,9 +66,16 @@ Jsonline only. Markdown is a view format, not a storage format.
 Resource-first command structure: `timeline-cli todo add`, `timeline-cli event list`. No natural language date parsing—CLI accepts only `YYYY-MM-DD` format.
 
 **Query Output**:
-Two formats: `markdown` (default, human-readable) and `json` (machine-readable, via `--json` flag).
-Markdown output supports `--show-id` flag to display item IDs.
-Applies to list commands (`todo list`, `event list`, `list`).
+Two formats: `markdown` (default, human-readable) and `jsonlines` (machine-readable, via `--json` flag).
+- Markdown: Human-friendly, supports `--show-id` flag to display item IDs.
+- JSONlines: One JSON object per line, no array wrapper. Optimized for AI Agent consumption. Field order: `id`, `date`, `time`, `text`, `status`, `details`.
+Applies to `todo list` and `event list`. The `list` command only supports markdown output (shows date with counts).
+
+**Format Distinction**:
+CLI output format and storage format have different field orders—this is intentional.
+- Storage format (`.timelines.jsonl`): `type`, `date`, `time`, `text`, `details`, `id` — optimized for git diff readability.
+- Output format (`--json`): `id`, `date`, `time`, `text`, `status`, `details` — optimized for AI Agent operations (id first for quick reference).
+AI Agents should always consume CLI output, never read `.timelines.jsonl` directly.
 
 **Range Filter**:
 `--range` parameter (required for list commands). Syntax: `left..right`
