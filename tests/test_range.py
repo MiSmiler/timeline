@@ -16,12 +16,17 @@ class TestRangeParameter:
 
     def test_todo_list_with_range_today(self):
         """Todo list --range today should show today's todos."""
+        from datetime import date
+
         with tempfile.TemporaryDirectory() as tmpdir:
+            today = date.today()
+            yesterday = today - date.resolution  # timedelta(days=1)
+
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            # Add todo for today and yesterday (new API)
-            run_cli(["todo", "add", "today task", "--date", "2026-06-18"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "yesterday task", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            # Add todo for today and yesterday (using dynamic dates)
+            run_cli(["todo", "add", "today task", "--date", str(today)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "yesterday task", "--date", str(yesterday)], cwd=Path(tmpdir))
 
             # List with --range today
             result = run_cli(["todo", "list", "--range", "today"], cwd=Path(tmpdir))
@@ -132,7 +137,7 @@ class TestRangeParameter:
             assert "meeting 17" not in result.stdout
 
     def test_event_list_with_range_json(self):
-        """Event list --range --json should include date field."""
+        """Event list --range --json should include date field (#60 JSONlines format)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
@@ -148,9 +153,11 @@ class TestRangeParameter:
             )
             assert result.returncode == 0
 
-            data = json.loads(result.stdout)
-            assert len(data) == 1
-            assert data[0]["date"] == "2026-06-16"
+            # Parse JSONlines format - each line is a JSON object
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) == 1
+            data = json.loads(lines[0])
+            assert data["date"] == "2026-06-16"
 
 
 class TestRelativeDateKeywords:
