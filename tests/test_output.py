@@ -3,7 +3,6 @@
 import json
 import sys
 import tempfile
-from datetime import date
 from pathlib import Path
 
 # Add src directory to PYTHONPATH for direct imports
