@@ -1,8 +1,8 @@
 """Init command implementation."""
 
-import sys
 from pathlib import Path
 
+from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Timeline
 from timeline_cli.storage import DEFAULT_STORAGE_FILE, write_timeline
 
@@ -12,8 +12,7 @@ def handle_init() -> None:
     path = Path(DEFAULT_STORAGE_FILE)
 
     if path.exists():
-        print(f"Error: {DEFAULT_STORAGE_FILE} already exists", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Timeline file already exists: {path}")
 
     # Create empty timeline with schema version 1
     timeline = Timeline(schema_version=1)

@@ -2,6 +2,7 @@
 
 import sys
 
+from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Event
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_events
 from timeline_cli.range_parser import filter_events_by_range, normalize_date_string, parse_range
@@ -76,8 +77,7 @@ def handle_event_edit(args) -> None:
     result = find_event_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print(f"Error: Event not found with ID '{args.id}'", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Event not found: {args.id}")
 
     date, record, idx, event = result
 
@@ -147,8 +147,7 @@ def handle_event_delete(args) -> None:
     result = find_event_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print(f"Error: Event not found with ID '{args.id}'", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Event not found: {args.id}")
 
     date, record, idx, event = result
 

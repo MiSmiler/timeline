@@ -1,6 +1,9 @@
 """Data models for timeline-cli."""
 
+import json
 from dataclasses import dataclass, field
+
+from timeline_cli.errors import TimelineInternalError
 
 
 @dataclass
@@ -176,20 +179,30 @@ class Timeline:
         - New format: Each line is one item with 'type' field
         - Old format: Each line is a DailyRecord with 'date' field but no 'type'
         """
-        import json
-
         if not lines:
-            raise ValueError("Empty timeline file")
+            raise TimelineInternalError("Empty timeline file. Run 'timeline-cli doctor --fix' to repair.")
 
-        first = json.loads(lines[0])
+        try:
+            first = json.loads(lines[0])
+        except json.JSONDecodeError as e:
+            raise TimelineInternalError(
+                "Failed to parse timeline file. Run 'timeline-cli doctor --fix' to repair."
+            ) from e
+
         if "schema_version" not in first:
-            raise ValueError("Missing schema_version header")
+            raise TimelineInternalError("Missing schema_version header. Run 'timeline-cli doctor --fix' to repair.")
 
         records: dict[str, DailyRecord] = {}
 
         for line in lines[1:]:
             if line.strip():
-                item = json.loads(line)
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError as e:
+                    raise TimelineInternalError(
+                        "Failed to parse timeline file. Run 'timeline-cli doctor --fix' to repair."
+                    ) from e
+
                 item_type = item.get("type")
                 date = item.get("date")
 
@@ -221,6 +234,8 @@ class Timeline:
                     record.notes = item.get("text")
 
                 else:
-                    raise ValueError(f"Unknown item type: {item_type}")
+                    raise TimelineInternalError(
+                        f"Unknown item type: {item_type}. Run 'timeline-cli doctor --fix' to repair."
+                    )
 
         return cls(schema_version=first["schema_version"], records=records)

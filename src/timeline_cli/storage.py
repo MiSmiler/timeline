@@ -5,6 +5,7 @@ import string
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from timeline_cli.errors import TimelineFileNotFoundError
 from timeline_cli.models import DailyRecord, Timeline
 
 if TYPE_CHECKING:
@@ -74,7 +75,7 @@ def read_timeline(path: str | Path = DEFAULT_STORAGE_FILE) -> Timeline:
     """Read timeline from jsonline file."""
     path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"Timeline file not found: {path}")
+        raise TimelineFileNotFoundError(str(path))
 
     lines = path.read_text().strip().split("\n")
     return Timeline.from_lines(lines)

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 
+from timeline_cli.errors import TimelineValidationError
+
 if TYPE_CHECKING:
     from timeline_cli.models import DailyRecord, Event, Todo
 
@@ -39,10 +41,18 @@ def parse_datetime(value: str) -> datetime | date:
 
     # Try datetime format first
     if "T" in value:
-        return datetime.fromisoformat(value)
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            raise TimelineValidationError(
+                f"Invalid datetime: {value}. Use YYYY-MM-DDTHH:MM format."
+            ) from None
 
     # Try date format
-    return date.fromisoformat(value)
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise TimelineValidationError(f"Invalid date: {value}. Use YYYY-MM-DD format.") from None
 
 
 def normalize_date_string(value: str) -> str:
