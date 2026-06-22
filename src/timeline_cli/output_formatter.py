@@ -15,6 +15,18 @@ class OutputFormat(Enum):
     JSON = "json"
 
 
+def to_json_line(obj) -> str:
+    """Convert object to JSON line with ensure_ascii=False.
+
+    Args:
+        obj: Any JSON-serializable object
+
+    Returns:
+        Single-line JSON string without indentation
+    """
+    return json.dumps(obj, ensure_ascii=False)
+
+
 def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False) -> str:
     """Format todos as markdown.
 
@@ -58,16 +70,17 @@ def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False
 
 
 def format_todos_json(todos: list[tuple[str, "Todo"]]) -> str:
-    """Format todos as JSON.
+    """Format todos as JSONlines.
 
     Args:
         todos: List of (date, todo) tuples
 
     Returns:
-        JSON string
+        JSONlines string (one JSON object per line)
     """
-    data = [
-        {
+    lines = []
+    for date, todo in todos:
+        data = {
             "id": todo.id,
             "date": date,
             "time": todo.time,
@@ -75,9 +88,8 @@ def format_todos_json(todos: list[tuple[str, "Todo"]]) -> str:
             "status": todo.status,
             "details": todo.details,
         }
-        for date, todo in todos
-    ]
-    return json.dumps(data, indent=2, ensure_ascii=False)
+        lines.append(to_json_line(data))
+    return "\n".join(lines)
 
 
 def format_todos(todos: list[tuple[str, "Todo"]], format: OutputFormat, show_id: bool = False) -> str:
@@ -137,25 +149,25 @@ def format_events_markdown(events: list[tuple[str, "Event"]], show_id: bool = Fa
 
 
 def format_events_json(events: list[tuple[str, "Event"]]) -> str:
-    """Format events as JSON.
+    """Format events as JSONlines.
 
     Args:
         events: List of (date, event) tuples
 
     Returns:
-        JSON string
+        JSONlines string (one JSON object per line)
     """
-    data = [
-        {
+    lines = []
+    for date, event in events:
+        data = {
             "id": event.id,
             "date": date,
             "time": event.time,
             "text": event.text,
             "details": event.details,
         }
-        for date, event in events
-    ]
-    return json.dumps(data, indent=2, ensure_ascii=False)
+        lines.append(to_json_line(data))
+    return "\n".join(lines)
 
 
 def format_events(events: list[tuple[str, "Event"]], format: OutputFormat, show_id: bool = False) -> str:
@@ -217,15 +229,3 @@ def format_dates_list_markdown(dates_data: dict[str, dict]) -> str:
         lines.append(f"- {date} ({event_str}, {todo_str}, {note_str})")
 
     return "\n".join(lines)
-
-
-def format_dates_list_json(dates: list[str]) -> str:
-    """Format dates list as JSON.
-
-    Args:
-        dates: List of date strings
-
-    Returns:
-        JSON string
-    """
-    return json.dumps(dates, indent=2, ensure_ascii=False)

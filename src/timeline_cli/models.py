@@ -113,9 +113,9 @@ class Timeline:
         - type: event < todo < note
         - time: null sorts last within same type
         """
-        import json
+        from timeline_cli.output_formatter import to_json_line
 
-        lines = [json.dumps({"schema_version": self.schema_version}, ensure_ascii=False)]
+        lines = [to_json_line({"schema_version": self.schema_version})]
 
         # Collect all items with their metadata
         items = []
@@ -164,7 +164,7 @@ class Timeline:
 
         # Convert to JSON lines
         for item in items:
-            lines.append(json.dumps(item, ensure_ascii=False))
+            lines.append(to_json_line(item))
 
         return lines
 

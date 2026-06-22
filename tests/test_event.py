@@ -141,7 +141,7 @@ class TestEventList:
             assert "lunch" in result.stdout
 
     def test_event_list_json_output(self):
-        """Event list --json outputs JSON."""
+        """Event list --json outputs JSONlines format (#60)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
@@ -149,10 +149,13 @@ class TestEventList:
             result = run_cli(["event", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            data = json.loads(result.stdout)
-            assert isinstance(data, list)
-            assert len(data) == 1
-            assert data[0]["time"] == "14:30"
+            # Should be JSONlines format - each line is valid JSON
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) == 1
+            data = json.loads(lines[0])
+            assert isinstance(data, dict)
+            assert data["time"] == "14:30"
+            assert data["text"] == "meeting"
 
     def test_event_list_contains_filter(self):
         """Event list --contains filters by substring."""

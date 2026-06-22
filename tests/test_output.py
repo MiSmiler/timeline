@@ -48,7 +48,7 @@ class TestMarkdownOutput:
             assert "Meeting" in result.stdout
 
     def test_todo_list_json_flag(self):
-        """Todo list --json should output JSON format."""
+        """Todo list --json should output JSONlines format (#60)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
@@ -61,10 +61,14 @@ class TestMarkdownOutput:
             )
             assert result.returncode == 0
 
-            # Verify JSON output
-            data = json.loads(result.stdout)
-            assert len(data) == 1
-            assert data[0]["text"] == "Task 1"
+            # Verify JSONlines format - each line is valid JSON
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) == 1
+            data = json.loads(lines[0])
+            assert data["text"] == "Task 1"
+            # Verify field order: id should be first
+            keys = list(data.keys())
+            assert keys[0] == "id"
 
     def test_todo_list_markdown_grouped_by_date(self):
         """Todo list markdown should group todos by date."""
@@ -148,6 +152,91 @@ class TestMarkdownOutput:
             assert result.returncode == 0
             assert "# Undated" in result.stdout
             assert "Sometime task" in result.stdout
+
+    def test_todo_list_json_multiple_items(self):
+        """Todo list --json should output one JSON object per line (#60)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 1", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 2", "--date", "2026-06-18"], cwd=Path(tmpdir))
+
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18", "--json"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) == 2
+            data1 = json.loads(lines[0])
+            data2 = json.loads(lines[1])
+            assert data1["text"] == "Task 1"
+            assert data2["text"] == "Task 2"
+
+    def test_todo_list_json_empty_results(self):
+        """Todo list --json with no results should output empty stdout, stderr message (#60)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18", "--json"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert result.stdout.strip() == ""
+            assert "No todos found" in result.stderr
+
+    def test_json_output_chinese_characters(self):
+        """JSON output should handle Chinese characters correctly (#60)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "买牛奶", "--date", "2026-06-18"], cwd=Path(tmpdir))
+
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18", "--json"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should not be escaped as \uXXXX
+            assert "买牛奶" in result.stdout
+            assert "\\u" not in result.stdout
+
+    def test_event_list_json_jsonlines_format(self):
+        """Event list --json should output JSONlines format (#60)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(
+                ["event", "add", "Meeting", "--date", "2026-06-18", "--time", "10:00"],
+                cwd=Path(tmpdir),
+            )
+
+            result = run_cli(
+                ["event", "list", "--range", "2026-06-18", "--json"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Verify JSONlines format
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) == 1
+            data = json.loads(lines[0])
+            assert data["text"] == "Meeting"
+            # Verify field order: id should be first
+            keys = list(data.keys())
+            assert keys[0] == "id"
+
+    def test_event_list_json_empty_results(self):
+        """Event list --json with no results should output empty stdout, stderr message (#60)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+
+            result = run_cli(
+                ["event", "list", "--range", "2026-06-18", "--json"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert result.stdout.strip() == ""
+            assert "No events found" in result.stderr
 
 
 class TestContainsParameter:

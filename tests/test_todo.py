@@ -182,7 +182,7 @@ class TestTodoList:
             assert "pending task" in result.stdout
 
     def test_todo_list_json_output(self):
-        """Todo list --json outputs JSON format."""
+        """Todo list --json outputs JSONlines format (#60)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
@@ -190,10 +190,12 @@ class TestTodoList:
             result = run_cli(["todo", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            # Should be valid JSON
-            data = json.loads(result.stdout)
-            assert isinstance(data, list)
-            assert len(data) > 0
+            # Should be JSONlines format - each line is valid JSON
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) > 0
+            data = json.loads(lines[0])
+            assert isinstance(data, dict)
+            assert data["text"] == "task"
 
     def test_todo_list_contains_filter(self):
         """Todo list --contains filters by substring."""
