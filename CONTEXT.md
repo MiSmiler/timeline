@@ -5,15 +5,15 @@ A daily event and todo management system with structured storage (jsonline) and 
 ## Core Concepts
 
 **Todo**:
-A task to be done. May have a specific time or be undated. Three states: `pending`, `completed`, `abandoned`. Identified by unique ID (`t<random>` format). ID is immutable and persists across edits/moves.
+A task to be done. May have a specific time or be undated. Three states: `pending`, `completed`, `abandoned`. Identified by unique ID (`t` + 5-char random suffix).
 _Avoid_: Task, item, reminder
 
 **Event**:
-A record of something that happened at a specific time. Immutable once created. Identified by unique ID (`e<random>` format).
+A record of something that happened at a specific time. Immutable once created. Identified by unique ID (`e` + 5-char random suffix).
 _Avoid_: Entry, occurrence, log
 
 **Note**:
-Free-form text without time constraints. Captures thoughts, goals, or mood. One note per date.
+Free-form text without time constraints. Captures thoughts, goals, or mood. No ID. One note per date, identified by date directly.
 _Avoid_: Memo, thought
 
 ## Storage
