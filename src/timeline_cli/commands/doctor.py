@@ -22,9 +22,9 @@ TODO: Extend --fix to handle more repair scenarios:
 
 import json
 import re
-import sys
 from pathlib import Path
 
+from timeline_cli.errors import TimelineFileNotFoundError, TimelineValidationError
 from timeline_cli.storage import DEFAULT_STORAGE_FILE
 
 
@@ -33,8 +33,7 @@ def handle_doctor(args) -> None:
     path = Path(DEFAULT_STORAGE_FILE)
 
     if not path.exists():
-        print(f"Error: {DEFAULT_STORAGE_FILE} not found", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineFileNotFoundError(str(path))
 
     lines = path.read_text().strip().split("\n")
 
@@ -162,6 +161,6 @@ def handle_doctor(args) -> None:
         print(f"Found {len(errors)} errors:")
         for error in errors:
             print(f"  - {error}")
-        sys.exit(1)
+        raise TimelineValidationError(f"Found {len(errors)} validation errors")
     else:
         print("All checks passed")
