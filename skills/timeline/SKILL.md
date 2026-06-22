@@ -1,6 +1,6 @@
 ---
 name: timeline
-description: "timeline-cli 操作指南。定义 Todo/Event/Note 的 CRUD 操作、日期处理规则和 CLI 命令语法。"
+description: "Manage Todo/Event/Note. Triggers: 待办/任务/todo (Todo ops), 事件/event (Event ops), 我做了/刚刚...了 (create Event), 笔记/note (Note ops), 提醒我做X (create timed Todo), 有什么事做/未完成的 (list pending Todos), 今天/明天的安排 (diary view), 修改时间/加细节 (edit Todo/Event)."
 ---
 
 # Timeline CLI 操作指南
