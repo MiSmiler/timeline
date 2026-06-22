@@ -1,4 +1,4 @@
-"""Tests for event edit commands (Issue #46 refactored)."""
+"""Tests for event edit commands (Issue #70: --new-at parameter)."""
 
 import re
 import tempfile
@@ -8,14 +8,14 @@ from conftest import read_items_by_date, run_cli
 
 
 class TestEventEdit:
-    """Tests for event edit command (new API: use --id)."""
+    """Tests for event edit command (Issue #70: use --id, --new-at)."""
 
     def test_event_edit_new_text(self):
-        """Tracer bullet: timeline-cli event edit --new-text updates text."""
+        """Event edit --new-text updates text."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -32,7 +32,7 @@ class TestEventEdit:
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
-            items = read_items_by_date(storage_file, "2026-06-16")
+            items = read_items_by_date(storage_file, "2026-06-15")
             assert items["events"][0]["text"] == "discussion"
 
     def test_event_edit_new_text_output_format(self):
@@ -40,7 +40,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "old meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "old meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -58,12 +58,12 @@ class TestEventEdit:
             # Should output: [eXXXXX] Edited: old meeting → new meeting
             assert f"[{event_id}] Edited: old meeting → new meeting" in result.stdout
 
-    def test_event_edit_new_time(self):
-        """Event edit --new-time updates time."""
+    def test_event_edit_new_at_time_only(self):
+        """Event edit --new-at updates time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -74,21 +74,21 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-time", "15:00"],
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-15 15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
-            items = read_items_by_date(storage_file, "2026-06-16")
+            items = read_items_by_date(storage_file, "2026-06-15")
             assert items["events"][0]["time"] == "15:00"
 
-    def test_event_edit_new_time_output_format(self):
-        """Event edit --new-time outputs: [id] Edited: time: old → new."""
+    def test_event_edit_new_at_time_output_format(self):
+        """Event edit --new-at outputs: [id] Edited: time: old → new."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -99,19 +99,115 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-time", "15:00"],
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-15 15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
             # Should output: [eXXXXX] Edited: time: 14:30 → 15:00
             assert f"[{event_id}] Edited: time: 14:30 → 15:00" in result.stdout
 
+    def test_event_edit_new_at_date_change(self):
+        """Event edit --new-at moves event to different date."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--at", "2026-06-15 10:00"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
+
+            result = run_cli(
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-16 10:00"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            # Should no longer be in 2026-06-15
+            items_old = read_items_by_date(storage_file, "2026-06-15")
+            assert len(items_old["events"]) == 0
+            # Should be in 2026-06-16
+            items_new = read_items_by_date(storage_file, "2026-06-16")
+            assert len(items_new["events"]) == 1
+
+    def test_event_edit_new_at_date_only_rejected(self):
+        """Event edit --new-at date-only (no time) is rejected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--at", "2026-06-15 10:00"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
+
+            result = run_cli(
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-16"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode != 0
+            assert "Event must have a time" in result.stderr
+
+    def test_event_edit_new_at_future_rejected(self):
+        """Event edit --new-at future time is rejected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--at", "-1h"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
+
+            result = run_cli(
+                ["event", "edit", "--id", event_id, "--new-at", "+2h"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode != 0
+            assert "Event time cannot be later than now" in result.stderr
+
+    def test_event_edit_new_at_past_allowed(self):
+        """Event edit --new-at past time is allowed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["event", "add", "meeting", "--at", "-1h"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+
+            # Extract ID
+            match = re.search(r"\[(e[a-z0-9]+)\]", result.stdout)
+            assert match is not None
+            event_id = match.group(1)
+
+            result = run_cli(
+                ["event", "edit", "--id", event_id, "--new-at", "-30m"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should output with actual date/time
+            assert re.search(r"\[e[a-z0-9]+\] Edited:", result.stdout)
+
     def test_event_edit_append_detail(self):
         """Event edit --append-detail adds detail."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -128,7 +224,7 @@ class TestEventEdit:
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
-            items = read_items_by_date(storage_file, "2026-06-16")
+            items = read_items_by_date(storage_file, "2026-06-15")
             assert "notes" in items["events"][0]["details"]
 
     def test_event_edit_append_detail_output_format(self):
@@ -136,7 +232,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -159,7 +255,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30", "--detail", "old"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30", "--detail", "old"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -177,7 +273,7 @@ class TestEventEdit:
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
-            items = read_items_by_date(storage_file, "2026-06-16")
+            items = read_items_by_date(storage_file, "2026-06-15")
             assert items["events"][0]["details"] == ["new 1", "new 2"]
 
     def test_event_edit_set_detail_output_format(self):
@@ -185,7 +281,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30", "--detail", "old"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30", "--detail", "old"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -209,7 +305,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "old meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "old meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -220,7 +316,7 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-text", "new meeting", "--new-time", "15:00"],
+                ["event", "edit", "--id", event_id, "--new-text", "new meeting", "--new-at", "2026-06-15 15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -245,11 +341,11 @@ class TestEventDelete:
     """Tests for event delete command (new API: use --id)."""
 
     def test_event_delete_with_confirmation(self):
-        """Tracer bullet: timeline-cli event delete removes event."""
+        """Event delete removes event."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -266,7 +362,7 @@ class TestEventDelete:
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
-            items = read_items_by_date(storage_file, "2026-06-16")
+            items = read_items_by_date(storage_file, "2026-06-15")
             assert len(items["events"]) == 0
 
     def test_event_delete_output_format(self):
@@ -274,7 +370,7 @@ class TestEventDelete:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "old meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "old meeting", "--at", "2026-06-15 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

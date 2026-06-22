@@ -1,4 +1,4 @@
-"""Tests for todo status commands (Issue #45 refactored)."""
+"""Tests for todo status commands (Issue #45 refactored, Issue #70: --at parameter)."""
 
 import re
 import tempfile
@@ -14,7 +14,7 @@ class TestTodoComplete:
         """Tracer bullet: timeline-cli todo complete marks todo as completed."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "write tests", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "write tests", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID
@@ -45,7 +45,7 @@ class TestTodoAbandon:
         """Tracer bullet: timeline-cli todo abandon marks todo as abandoned."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "old task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "old task", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID

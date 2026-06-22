@@ -1,7 +1,7 @@
 """Range parser for timeline-cli --range parameter."""
 
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING
 
 from timeline_cli.errors import TimelineValidationError
@@ -11,12 +11,243 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class AtParameter:
+    """Parsed result from --at parameter."""
+
+    date: str | None  # YYYY-MM-DD format or None for undated
+    time: str | None  # HH:MM format or None
+
+
+@dataclass
 class DateRange:
     """Represents a date/time range for filtering."""
 
     start: datetime | date | None = None  # None = no lower bound
     end: datetime | date | None = None  # None = no upper bound
     include_undated: bool = False  # Include items with no date
+
+
+def normalize_time_string(value: str) -> str:
+    """Normalize a time string, converting 'now' to current HH:MM.
+
+    Args:
+        value: Time string (may be 'now' or HH:MM format)
+
+    Returns:
+        Time string in HH:MM format
+    """
+    if value == "now":
+        return datetime.now().strftime("%H:%M")
+    return value  # Already in HH:MM format
+
+
+def validate_time_now_constraint(time_value: str, date_value: str) -> None:
+    """Validate that --time now is only used with today's date.
+
+    Args:
+        time_value: The time argument value
+        date_value: The date argument value (not yet normalized)
+
+    Raises:
+        TimelineValidationError: If 'now' is used with non-today date
+    """
+    if time_value == "now":
+        normalized_date = normalize_date_string(date_value)
+        today = date.today().isoformat()
+        if normalized_date != today:
+            raise TimelineValidationError(
+                f"'--time now' can only be used when the date is today.\n"
+                f"Current date is {today}, but specified date is {normalized_date}."
+            )
+
+
+def validate_time_now_for_existing_date(time_value: str, existing_date: str) -> None:
+    """Validate that --time now is only used when existing item's date is today.
+
+    Args:
+        time_value: The --new-time argument value
+        existing_date: The existing item's date (YYYY-MM-DD format)
+
+    Raises:
+        TimelineValidationError: If 'now' is used with non-today date
+    """
+    if time_value == "now":
+        today = date.today().isoformat()
+        if existing_date != today:
+            raise TimelineValidationError(
+                f"'--time now' can only be used when the date is today.\n"
+                f"Current date is {today}, but specified date is {existing_date}."
+            )
+
+
+def parse_at_parameter(value: str) -> AtParameter:
+    """Parse --at parameter string.
+
+    Supported formats (Slice 1):
+    - "YYYY-MM-DD HH:MM" → explicit datetime
+    - "YYYY-MM-DD" → explicit date only
+    - "today"/"yesterday"/"tomorrow" → relative date
+    - "" → undated (no date, no time)
+
+    Supported formats (Slice 2):
+    - "today HH:MM" → relative date + explicit time
+    - "yesterday HH:MM" → relative date + explicit time
+
+    Supported formats (Slice 3):
+    - "HH:MM" → time only, defaults to today
+
+    Supported formats (Slice 4):
+    - "now" → current datetime
+
+    Supported formats (Slice 5):
+    - "+2h30m" / "-30m" → offset from now
+
+    Args:
+        value: The --at parameter string
+
+    Returns:
+        AtParameter with date (YYYY-MM-DD) and time (HH:MM) fields
+
+    Raises:
+        TimelineValidationError: If format is invalid or constraints violated
+    """
+    if value == "":
+        return AtParameter(date=None, time=None)
+
+    # Slice 4: Handle "now" keyword
+    if value == "now":
+        return AtParameter(date=date.today().isoformat(), time=datetime.now().strftime("%H:%M"))
+
+    # Check for space-separated parts (Slice 1, 2)
+    parts = value.split(maxsplit=1)
+
+    if len(parts) == 2:
+        # Two parts: date and time
+        date_part, time_part = parts
+
+        # Slice 5: Reject relative date + relative offset combination
+        if _is_relative_offset(time_part):
+            raise TimelineValidationError(
+                f"Cannot combine relative date with relative time offset.\n"
+                f"Use '{time_part}' directly (base is now), or '{date_part} HH:MM' (explicit time)."
+            )
+
+        normalized_date = normalize_date_string(date_part)
+        # Time validation: must be HH:MM format
+        if not _is_valid_time_format(time_part):
+            raise TimelineValidationError(f"Invalid time format: {time_part}. Use HH:MM format.")
+        return AtParameter(date=normalized_date, time=time_part)
+
+    # Single part
+    single = parts[0]
+
+    # Slice 5: Handle relative offset (+2h30m, -30m)
+    if _is_relative_offset(single):
+        return _parse_relative_offset(single)
+
+    # Slice 3: Handle time-only format (HH:MM)
+    if _is_valid_time_format(single):
+        return AtParameter(date=date.today().isoformat(), time=single)
+
+    # Slice 1: Try to parse as date or keyword
+    try:
+        normalized = normalize_date_string(single)
+        return AtParameter(date=normalized, time=None)
+    except TimelineValidationError:
+        raise TimelineValidationError(f"Invalid --at parameter: {value}") from None
+
+
+def _is_valid_time_format(value: str) -> bool:
+    """Check if value is a valid HH:MM time format."""
+    import re
+
+    return bool(re.match(r"^\d{2}:\d{2}$", value))
+
+
+def _is_relative_offset(value: str) -> bool:
+    """Check if value is a relative time offset (+2h, -30m, etc.)."""
+    import re
+
+    # Pattern: [+/-] followed by one or two number-unit pairs
+    # Units: h, m, min
+    # Examples: +2h, -30m, +2h30m, -1h15min, +30min, -2h5m
+    pattern = r"^[+-](\d+h)?(\d+(m|min))?$"
+    return bool(re.match(pattern, value))
+
+
+def _parse_relative_offset(value: str) -> AtParameter:
+    """Parse relative time offset and apply to now.
+
+    Args:
+        value: Offset string like "+2h30m", "-30m", "+1h15min"
+
+    Returns:
+        AtParameter with today's date and calculated time
+
+    Raises:
+        TimelineValidationError: If offset exceeds ±72h
+    """
+    import re
+
+    # Parse offset components
+    sign = 1 if value.startswith("+") else -1
+    offset_str = value[1:]  # Remove sign
+
+    total_minutes = 0
+
+    # Match hours: <number>h
+    hours_match = re.search(r"(\d+)h", offset_str)
+    if hours_match:
+        total_minutes += int(hours_match.group(1)) * 60
+
+    # Match minutes: <number>m or <number>min
+    minutes_match = re.search(r"(\d+)(m|min)", offset_str)
+    if minutes_match:
+        total_minutes += int(minutes_match.group(1))
+
+    total_minutes *= sign
+
+    # Validate range: ±72h
+    max_offset = 72 * 60
+    if abs(total_minutes) > max_offset:
+        raise TimelineValidationError(
+            f"Time offset exceeds ±72 hours limit.\nSpecified offset: {value} ({total_minutes / 60:.1f} hours)."
+        )
+
+    # Calculate new time
+    now = datetime.now()
+    new_dt = now + timedelta(minutes=total_minutes)
+
+    return AtParameter(date=new_dt.date().isoformat(), time=new_dt.strftime("%H:%M"))
+
+
+def validate_event_time_not_future(at_param: AtParameter) -> None:
+    """Validate that Event time is not later than now.
+
+    Events represent "things that already happened", so they cannot be in the future.
+
+    Args:
+        at_param: Parsed --at parameter
+
+    Raises:
+        TimelineValidationError: If the datetime is later than now
+    """
+    # Only check if both date and time are specified
+    if at_param.date is None or at_param.time is None:
+        return  # Date-only events are allowed (no time constraint)
+
+    # Build datetime from parsed result
+    event_date = date.fromisoformat(at_param.date)
+    event_time = time.fromisoformat(at_param.time)
+    event_dt = datetime.combine(event_date, event_time)
+
+    # Check against now
+    now = datetime.now()
+    if event_dt > now:
+        raise TimelineValidationError(
+            f"Event time cannot be later than now.\n"
+            f"Specified: {at_param.date} {at_param.time}, Current: {now.strftime('%Y-%m-%d %H:%M')}"
+        )
 
 
 def parse_datetime(value: str) -> datetime | date:
@@ -44,9 +275,7 @@ def parse_datetime(value: str) -> datetime | date:
         try:
             return datetime.fromisoformat(value)
         except ValueError:
-            raise TimelineValidationError(
-                f"Invalid datetime: {value}. Use YYYY-MM-DDTHH:MM format."
-            ) from None
+            raise TimelineValidationError(f"Invalid datetime: {value}. Use YYYY-MM-DDTHH:MM format.") from None
 
     # Try date format
     try:
@@ -64,9 +293,13 @@ def normalize_date_string(value: str) -> str:
     Returns:
         Date string in YYYY-MM-DD format (or special date like "0000-00-00")
     """
-    # Special case: undated items (0000-00-00)
-    if value == "0000-00-00":
-        return value
+    # Issue #69: Reject 'now' as date parameter
+    if value == "now":
+        raise TimelineValidationError("'--date' does not support 'now'. Use 'today' instead.")
+
+    # Special case: undated items (? or 0000-00-00)
+    if value == "?" or value == "0000-00-00":
+        return "0000-00-00"
 
     parsed = parse_datetime(value)
     if isinstance(parsed, datetime):

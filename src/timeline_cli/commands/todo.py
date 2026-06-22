@@ -5,7 +5,11 @@ import sys
 from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Todo
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_todos
-from timeline_cli.range_parser import filter_todos_by_range, normalize_date_string, parse_range
+from timeline_cli.range_parser import (
+    filter_todos_by_range,
+    parse_at_parameter,
+    parse_range,
+)
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -18,10 +22,16 @@ from timeline_cli.storage import (
 
 
 def handle_todo_add(args) -> None:
-    """Handle todo add command (Issue #45: TEXT --date DATE --time TIME)."""
+    """Handle todo add command (Issue #70: TEXT --at AT)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
-    # Normalize relative date keywords to YYYY-MM-DD format
-    normalized_date = normalize_date_string(args.date)
+
+    # Parse --at parameter
+    at_param = parse_at_parameter(args.at)
+
+    # Determine normalized date and time
+    normalized_date = at_param.date if at_param.date else "0000-00-00"
+    normalized_time = at_param.time
+
     record = get_or_create_daily_record(timeline, normalized_date)
 
     # Generate unique ID
@@ -30,7 +40,7 @@ def handle_todo_add(args) -> None:
 
     # Create new todo
     todo = Todo(
-        time=args.time,
+        time=normalized_time,
         text=args.text,
         status="pending",
         details=args.detail or [],
@@ -44,11 +54,13 @@ def handle_todo_add(args) -> None:
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
-    # Git-style output: [id] Added: text (date time) or [id] Added: text (date)
-    if args.time:
-        print(f"[{todo_id}] Added: {args.text} ({args.date} {args.time})")
+    # Git-style output with normalized date and time (Issue #68, #70)
+    if normalized_date == "0000-00-00":
+        print(f"[{todo_id}] Added: {args.text} (undated)")
+    elif normalized_time:
+        print(f"[{todo_id}] Added: {args.text} ({normalized_date} {normalized_time})")
     else:
-        print(f"[{todo_id}] Added: {args.text} ({args.date})")
+        print(f"[{todo_id}] Added: {args.text} ({normalized_date} no-time)")
 
 
 def handle_todo_list(args) -> None:
@@ -118,7 +130,7 @@ def handle_todo_abandon(args) -> None:
 
 
 def handle_todo_edit(args) -> None:
-    """Handle todo edit command (Issue #45: use --id)."""
+    """Handle todo edit command (Issue #70: use --id, --new-at)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
     result = find_todo_by_id_in_timeline(timeline, args.id)
@@ -126,26 +138,63 @@ def handle_todo_edit(args) -> None:
     if result is None:
         raise TimelineValidationError(f"Todo not found: {args.id}")
 
-    date, record, idx, todo = result
+    old_date, record, idx, todo = result
 
     # Track changes for diff-style output
     changes = []
 
-    # Apply edits and track changes
+    # Handle --new-at parameter (Issue #70)
+    # Note: args.new_at can be "" (empty string) for undated conversion
+    if args.new_at is not None:
+        at_param = parse_at_parameter(args.new_at)
+        new_date = at_param.date if at_param.date else "0000-00-00"
+        new_time = at_param.time
+
+        # Track date/time changes
+        old_time_str = todo.time or "(no time)"
+        new_time_str = new_time or "(no time)"
+
+        # If date changed, need to move todo to different record
+        if new_date != old_date:
+            # Remove from old record
+            record.todos.pop(idx)
+
+            # Get or create new record
+            new_record = get_or_create_daily_record(timeline, new_date)
+
+            # Update todo's time
+            todo.time = new_time
+
+            # Add to new record and sort
+            new_record.todos.append(todo)
+            _sort_todos(new_record.todos)
+
+            # Track changes
+            if old_date == "0000-00-00":
+                old_date_str = "undated"
+            else:
+                old_date_str = old_date
+
+            if new_date == "0000-00-00":
+                new_date_str = "undated"
+            else:
+                new_date_str = new_date
+
+            changes.append(("date", old_date_str, new_date_str))
+            if old_time_str != new_time_str:
+                changes.append(("time", old_time_str, new_time_str))
+        else:
+            # Same date, just update time
+            if new_time != todo.time:
+                todo.time = new_time
+                changes.append(("time", old_time_str, new_time_str))
+                _sort_todos(record.todos)
+
+    # Apply other edits and track changes
     if args.new_text:
         old_text = todo.text
         todo.text = args.new_text
         changes.append(("text", old_text, args.new_text))
-
-    if args.new_time:
-        old_time = todo.time or "(no time)"
-        todo.time = args.new_time
-        changes.append(("time", old_time, args.new_time))
-
-    if args.clear_time:
-        old_time = todo.time or "(no time)"
-        todo.time = None
-        changes.append(("time", old_time, "(cleared)"))
 
     if args.append_detail:
         # Issue #54: Support multiple --append-detail calls
@@ -159,9 +208,8 @@ def handle_todo_edit(args) -> None:
         todo.details = [line for line in args.set_detail.split("\n") if line.strip()]
         changes.append(("details", old_details, new_details))
 
-    # Re-sort if time changed
-    if args.new_time or args.clear_time:
-        _sort_todos(record.todos)
+    # Re-sort if time changed via --new-at (already handled above)
+    # Note: sorting is done inline when time is updated
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
@@ -173,6 +221,8 @@ def handle_todo_edit(args) -> None:
             print(f"[{args.id}] Edited: {old} → {new}")
         elif change_type == "time":
             print(f"[{args.id}] Edited: time: {old} → {new}")
+        elif change_type == "date":
+            print(f"[{args.id}] Edited: date: {old} → {new}")
         elif change_type == "details":
             print(f"[{args.id}] Edited: details: {old} → {new}")
         elif change_type == "detail" and changes[0][3] == "append":
@@ -186,6 +236,8 @@ def handle_todo_edit(args) -> None:
                 print(f"  text: {change[1]} → {change[2]}")
             elif change_type == "time":
                 print(f"  time: {change[1]} → {change[2]}")
+            elif change_type == "date":
+                print(f"  date: {change[1]} → {change[2]}")
             elif change_type == "details":
                 print(f"  details: {change[1]} → {change[2]}")
             elif change_type == "detail" and change[3] == "append":

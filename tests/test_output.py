@@ -19,7 +19,7 @@ class TestMarkdownOutput:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Buy groceries", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Buy groceries", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             # List without --output flag (should be markdown by default)
             result = run_cli(
@@ -37,7 +37,7 @@ class TestMarkdownOutput:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["todo", "add", "Meeting", "--date", "2026-06-18", "--time", "14:30"],
+                ["todo", "add", "Meeting", "--at", "2026-06-18 14:30"],
                 cwd=Path(tmpdir),
             )
 
@@ -56,7 +56,7 @@ class TestMarkdownOutput:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task 1", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 1", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             # List with --json flag
             result = run_cli(
@@ -79,9 +79,9 @@ class TestMarkdownOutput:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task 1", "--date", "2026-06-17"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task 2", "--date", "2026-06-18"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task 3", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 1", "--at", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 2", "--at", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 3", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             # List
             result = run_cli(
@@ -102,7 +102,7 @@ class TestMarkdownOutput:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["todo", "add", "Buy groceries", "--date", "2026-06-18", "--detail", "Milk", "--detail", "Bread"],
+                ["todo", "add", "Buy groceries", "--at", "2026-06-18", "--detail", "Milk", "--detail", "Bread"],
                 cwd=Path(tmpdir),
             )
 
@@ -124,7 +124,7 @@ class TestMarkdownOutput:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "Task 1", "--date", "2026-06-18"],
+                ["todo", "add", "Task 1", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             # Extract ID from output: "Added todo [t7b3k]: Task 1"
@@ -146,7 +146,7 @@ class TestMarkdownOutput:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup - create undated todo (no time)
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Sometime task", "--date", "0000-00-00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Sometime task", "--at", "0000-00-00"], cwd=Path(tmpdir))
 
             # List with --range ? (undated items)
             result = run_cli(
@@ -161,8 +161,8 @@ class TestMarkdownOutput:
         """Todo list --json should output one JSON object per line (#60)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task 1", "--date", "2026-06-18"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task 2", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 1", "--at", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task 2", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             result = run_cli(
                 ["todo", "list", "--range", "2026-06-18", "--json"],
@@ -194,7 +194,7 @@ class TestMarkdownOutput:
         """JSON output should handle Chinese characters correctly (#60)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "买牛奶", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "买牛奶", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             result = run_cli(
                 ["todo", "list", "--range", "2026-06-18", "--json"],
@@ -210,7 +210,7 @@ class TestMarkdownOutput:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "Meeting", "--date", "2026-06-18", "--time", "10:00"],
+                ["event", "add", "Meeting", "--at", "2026-06-18 10:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -251,9 +251,9 @@ class TestContainsParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "buy groceries", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "buy milk", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "call mom", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "buy groceries", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "buy milk", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "call mom", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             # List with --contains buy (new API)
             result = run_cli(
@@ -270,8 +270,8 @@ class TestContainsParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "meeting with team", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "call team lead", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "meeting with team", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "call team lead", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range and --contains (new API)
             result = run_cli(
@@ -288,11 +288,11 @@ class TestContainsParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "team meeting", "--date", "2026-06-16", "--time", "10:00"],
+                ["event", "add", "team meeting", "--at", "2026-06-16 10:00"],
                 cwd=Path(tmpdir),
             )
             run_cli(
-                ["event", "add", "lunch", "--date", "2026-06-16", "--time", "14:00"],
+                ["event", "add", "lunch", "--at", "2026-06-16 14:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -311,7 +311,7 @@ class TestContainsParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "Task", "--date", "2026-06-18"],
+                ["todo", "add", "Task", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             todo_id = result.stdout.split("[")[1].split("]")[0]
@@ -331,7 +331,7 @@ class TestContainsParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "Task", "--date", "2026-06-18"],
+                ["todo", "add", "Task", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             todo_id = result.stdout.split("[")[1].split("]")[0]
@@ -350,7 +350,7 @@ class TestContainsParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Task", "--date", "2026-06-18"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             # List
             result = run_cli(

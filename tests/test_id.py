@@ -18,7 +18,7 @@ class TestIDGeneration:
             run_cli(["init"], cwd=Path(tmpdir))
 
             # Add a todo (new API)
-            result = run_cli(["todo", "add", "test task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "test task", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify ID in output
@@ -43,7 +43,7 @@ class TestIDGeneration:
 
             # Add an event
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-16 14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -69,9 +69,9 @@ class TestIDGeneration:
             run_cli(["init"], cwd=Path(tmpdir))
 
             # Add multiple todos (new API)
-            run_cli(["todo", "add", "task 1", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 2", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 3", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 1", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 2", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 3", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # Verify IDs are unique
             storage_file = Path(tmpdir) / ".timelines.jsonl"
@@ -95,7 +95,7 @@ class TestIDDisplay:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
             # Extract ID from output: "Added todo [t7b3k]: task"
             todo_id = result.stdout.split("[")[1].split("]")[0]
 
@@ -112,7 +112,7 @@ class TestIDDisplay:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-16 14:30"],
                 cwd=Path(tmpdir),
             )
             # Extract ID from output: "Added event [e4x1m]: meeting at 14:30"
@@ -130,7 +130,7 @@ class TestIDDisplay:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             # List todos with --json
             result = run_cli(["todo", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
@@ -215,7 +215,7 @@ class TestIDFormat:
         """Todo ID should start with 't'."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
@@ -226,7 +226,7 @@ class TestIDFormat:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-16 14:30"],
                 cwd=Path(tmpdir),
             )
 
@@ -238,7 +238,7 @@ class TestIDFormat:
         """ID should only use lowercase letters and digits."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             storage_file = Path(tmpdir) / ".timelines.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")

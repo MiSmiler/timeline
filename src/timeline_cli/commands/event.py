@@ -5,7 +5,12 @@ import sys
 from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Event
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_events
-from timeline_cli.range_parser import filter_events_by_range, normalize_date_string, parse_range
+from timeline_cli.range_parser import (
+    filter_events_by_range,
+    parse_at_parameter,
+    parse_range,
+    validate_event_time_not_future,
+)
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -18,10 +23,27 @@ from timeline_cli.storage import (
 
 
 def handle_event_add(args) -> None:
-    """Handle event add command (Issue #46: TEXT --date DATE --time TIME)."""
+    """Handle event add command (Issue #70: TEXT --at AT)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
-    # Normalize relative date keywords to YYYY-MM-DD format
-    normalized_date = normalize_date_string(args.date)
+
+    # Parse --at parameter
+    at_param = parse_at_parameter(args.at)
+
+    # Event model constraint: must have time
+    if at_param.time is None:
+        raise TimelineValidationError(
+            "Event must have a time.\n"
+            "Use '--at \"YYYY-MM-DD HH:MM\"' or '--at \"HH:MM\"' (defaults to today).\n"
+            f'Received: --at "{args.at}" (parsed as date-only).'
+        )
+
+    # Validate Event time is not in the future (Issue #70)
+    validate_event_time_not_future(at_param)
+
+    # Determine normalized date and time
+    normalized_date = at_param.date if at_param.date else "0000-00-00"
+    normalized_time = at_param.time
+
     record = get_or_create_daily_record(timeline, normalized_date)
 
     # Generate unique ID
@@ -30,7 +52,7 @@ def handle_event_add(args) -> None:
 
     # Create new event
     event = Event(
-        time=args.time,
+        time=normalized_time,
         text=args.text,
         details=args.detail or [],
         id=event_id,
@@ -42,7 +64,9 @@ def handle_event_add(args) -> None:
 
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
-    print(f"[{event_id}] Added: {args.text} at {args.time}")
+
+    # Git-style output with normalized date and time (Issue #68, #70)
+    print(f"[{event_id}] Added: {args.text} ({normalized_date} {normalized_time})")
 
 
 def handle_event_list(args) -> None:
@@ -71,7 +95,7 @@ def handle_event_list(args) -> None:
 
 
 def handle_event_edit(args) -> None:
-    """Handle event edit command (Issue #46: use --id)."""
+    """Handle event edit command (Issue #70: use --id, --new-at)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
     result = find_event_by_id_in_timeline(timeline, args.id)
@@ -79,21 +103,64 @@ def handle_event_edit(args) -> None:
     if result is None:
         raise TimelineValidationError(f"Event not found: {args.id}")
 
-    date, record, idx, event = result
+    old_date, record, idx, event = result
 
     # Track changes for diff-style output
     changes = []
 
-    # Apply edits and track changes
+    # Handle --new-at parameter (Issue #70)
+    # Note: args.new_at can be "" (empty string) for time-only changes
+    if args.new_at is not None:
+        at_param = parse_at_parameter(args.new_at)
+
+        # Event model constraint: must have time
+        if at_param.time is None:
+            raise TimelineValidationError(
+                "Event must have a time.\n"
+                "Use '--new-at \"YYYY-MM-DD HH:MM\"' or '--new-at \"HH:MM\"'.\n"
+                f'Received: --new-at "{args.new_at}" (parsed as date-only).'
+            )
+
+        # Validate Event time is not in the future (Issue #70)
+        validate_event_time_not_future(at_param)
+
+        new_date = at_param.date if at_param.date else "0000-00-00"
+        new_time = at_param.time
+
+        # Track date/time changes
+        old_time_str = event.time
+
+        # If date changed, need to move event to different record
+        if new_date != old_date:
+            # Remove from old record
+            record.events.pop(idx)
+
+            # Get or create new record
+            new_record = get_or_create_daily_record(timeline, new_date)
+
+            # Update event's time
+            event.time = new_time
+
+            # Add to new record and sort
+            new_record.events.append(event)
+            new_record.events.sort(key=lambda e: e.time)
+
+            # Track changes
+            changes.append(("date", old_date, new_date))
+            if old_time_str != new_time:
+                changes.append(("time", old_time_str, new_time))
+        else:
+            # Same date, just update time
+            if new_time != event.time:
+                event.time = new_time
+                changes.append(("time", old_time_str, new_time))
+                record.events.sort(key=lambda e: e.time)
+
+    # Apply other edits and track changes
     if args.new_text:
         old_text = event.text
         event.text = args.new_text
         changes.append(("text", old_text, args.new_text))
-
-    if args.new_time:
-        old_time = event.time
-        event.time = args.new_time
-        changes.append(("time", old_time, args.new_time))
 
     if args.append_detail:
         # Issue #54: Support multiple --append-detail calls
@@ -107,9 +174,8 @@ def handle_event_edit(args) -> None:
         event.details = [line for line in args.set_detail.split("\n") if line.strip()]
         changes.append(("details", old_details, new_details))
 
-    # Re-sort if time changed
-    if args.new_time:
-        record.events.sort(key=lambda e: e.time)
+    # Re-sort if time changed via --new-at (already handled above)
+    # Note: sorting is done inline when time is updated
 
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
@@ -121,6 +187,8 @@ def handle_event_edit(args) -> None:
             print(f"[{args.id}] Edited: {old} → {new}")
         elif change_type == "time":
             print(f"[{args.id}] Edited: time: {old} → {new}")
+        elif change_type == "date":
+            print(f"[{args.id}] Edited: date: {old} → {new}")
         elif change_type == "details":
             print(f"[{args.id}] Edited: details: {old} → {new}")
         elif change_type == "detail" and changes[0][3] == "append":
@@ -134,6 +202,8 @@ def handle_event_edit(args) -> None:
                 print(f"  text: {change[1]} → {change[2]}")
             elif change_type == "time":
                 print(f"  time: {change[1]} → {change[2]}")
+            elif change_type == "date":
+                print(f"  date: {change[1]} → {change[2]}")
             elif change_type == "details":
                 print(f"  details: {change[1]} → {change[2]}")
             elif change_type == "detail" and change[3] == "append":
