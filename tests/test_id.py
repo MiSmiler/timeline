@@ -136,11 +136,12 @@ class TestIDDisplay:
             result = run_cli(["todo", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            # Parse JSON output
-            data = json.loads(result.stdout)
-            assert len(data) == 1
-            assert "id" in data[0]
-            assert data[0]["id"].startswith("t")
+            # Parse JSONlines output - first line is a JSON object
+            lines = [line for line in result.stdout.split("\n") if line]
+            assert len(lines) == 1
+            data = json.loads(lines[0])
+            assert "id" in data
+            assert data["id"].startswith("t")
 
 
 class TestBackwardCompatibility:

@@ -231,8 +231,7 @@ def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
     subparsers.add_parser("init", help="Initialize .timelines.jsonl")
 
     # list
-    list_parser = subparsers.add_parser("list", help="List all dates")
-    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    subparsers.add_parser("list", help="List all dates")
 
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Validate data integrity")

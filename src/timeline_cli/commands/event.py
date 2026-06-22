@@ -60,6 +60,11 @@ def handle_event_list(args) -> None:
     output_format = OutputFormat.JSON if getattr(args, "json", False) else OutputFormat.MARKDOWN
     show_id = getattr(args, "show_id", False)
 
+    # Handle empty results for JSON format
+    if output_format == OutputFormat.JSON and not events_with_dates:
+        print("No events found for the specified range", file=sys.stderr)
+        return
+
     # Output
     print(format_events(events_with_dates, output_format, show_id))
 

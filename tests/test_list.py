@@ -1,6 +1,5 @@
 """Tests for list command (#13, #57)."""
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -34,18 +33,17 @@ class TestListCommand:
             assert "2 todo" in result.stdout or "2 todos" in result.stdout
             assert "1 note" in result.stdout or "1 notes" in result.stdout
 
-    def test_list_json_flag(self):
-        """List --json should output JSON format (#57)."""
+    def test_list_json_flag_not_accepted(self):
+        """List --json should not be accepted (#59)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
 
             result = run_cli(["list", "--json"], cwd=Path(tmpdir))
-            assert result.returncode == 0
-
-            data = json.loads(result.stdout)
-            assert isinstance(data, list)
-            assert "2026-06-16" in data
+            # Should fail because --json is no longer supported
+            assert result.returncode != 0
+            # Should show error about unrecognized argument
+            assert "unrecognized argument" in result.stderr or "error" in result.stderr.lower()
 
     def test_list_empty_file(self):
         """List on empty timeline shows 'No dates found'."""
