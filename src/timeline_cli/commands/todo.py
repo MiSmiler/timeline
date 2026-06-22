@@ -2,6 +2,7 @@
 
 import sys
 
+from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Todo
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_todos
 from timeline_cli.range_parser import filter_todos_by_range, normalize_date_string, parse_range
@@ -91,8 +92,7 @@ def handle_todo_complete(args) -> None:
     result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Todo not found: {args.id}")
 
     date, record, idx, todo = result
     todo.status = "completed"
@@ -108,8 +108,7 @@ def handle_todo_abandon(args) -> None:
     result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Todo not found: {args.id}")
 
     date, record, idx, todo = result
     todo.status = "abandoned"
@@ -125,8 +124,7 @@ def handle_todo_edit(args) -> None:
     result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Todo not found: {args.id}")
 
     date, record, idx, todo = result
 
@@ -201,8 +199,7 @@ def handle_todo_delete(args) -> None:
     result = find_todo_by_id_in_timeline(timeline, args.id)
 
     if result is None:
-        print(f"Error: Todo not found with ID '{args.id}'", file=sys.stderr)
-        sys.exit(1)
+        raise TimelineValidationError(f"Todo not found: {args.id}")
 
     date, record, idx, todo = result
 
