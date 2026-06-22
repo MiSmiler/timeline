@@ -25,8 +25,8 @@ class TestRangeParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             # Add todo for today and yesterday (using dynamic dates)
-            run_cli(["todo", "add", "today task", "--date", str(today)], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "yesterday task", "--date", str(yesterday)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "today task", "--at", str(today)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "yesterday task", "--at", str(yesterday)], cwd=Path(tmpdir))
 
             # List with --range today
             result = run_cli(["todo", "list", "--range", "today"], cwd=Path(tmpdir))
@@ -39,9 +39,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--at", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range 2026-06-16
             result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
@@ -55,10 +55,10 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 14", "--date", "2026-06-14"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 14", "--at", "2026-06-14"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--at", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range 2026-06-15..2026-06-16
             result = run_cli(["todo", "list", "--range", "2026-06-15..2026-06-16"], cwd=Path(tmpdir))
@@ -73,9 +73,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 14", "--date", "2026-06-14"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 14", "--at", "2026-06-14"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--at", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             # List with --range 2026-06-15..
             result = run_cli(["todo", "list", "--range", "2026-06-15.."], cwd=Path(tmpdir))
@@ -89,9 +89,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--at", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range ..2026-06-16
             result = run_cli(["todo", "list", "--range", "..2026-06-16"], cwd=Path(tmpdir))
@@ -105,9 +105,9 @@ class TestRangeParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 15", "--date", "2026-06-15"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 16", "--date", "2026-06-16"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task 17", "--date", "2026-06-17"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 15", "--at", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 16", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task 17", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # List with --range ..
             result = run_cli(["todo", "list", "--range", ".."], cwd=Path(tmpdir))
@@ -122,11 +122,11 @@ class TestRangeParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "meeting 16", "--date", "2026-06-16", "--time", "10:00"],
+                ["event", "add", "meeting 16", "--at", "2026-06-16 10:00"],
                 cwd=Path(tmpdir),
             )
             run_cli(
-                ["event", "add", "meeting 17", "--date", "2026-06-17", "--time", "14:00"],
+                ["event", "add", "meeting 17", "--at", "2026-06-17 14:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -142,7 +142,7 @@ class TestRangeParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "10:00"],
+                ["event", "add", "meeting", "--at", "2026-06-16 10:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -200,9 +200,9 @@ class TestRelativeDateKeywords:
 
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "yesterday task", "--date", str(yesterday)], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "today task", "--date", str(today)], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "day before task", "--date", str(day_before)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "yesterday task", "--at", str(yesterday)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "today task", "--at", str(today)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "day before task", "--at", str(day_before)], cwd=Path(tmpdir))
 
             # List with --range yesterday
             result = run_cli(["todo", "list", "--range", "yesterday"], cwd=Path(tmpdir))
@@ -222,9 +222,9 @@ class TestRelativeDateKeywords:
 
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "tomorrow task", "--date", str(tomorrow)], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "today task", "--date", str(today)], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "day after task", "--date", str(day_after)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "tomorrow task", "--at", str(tomorrow)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "today task", "--at", str(today)], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "day after task", "--at", str(day_after)], cwd=Path(tmpdir))
 
             # List with --range tomorrow
             result = run_cli(["todo", "list", "--range", "tomorrow"], cwd=Path(tmpdir))
@@ -243,7 +243,7 @@ class TestRangeBackwardCompatibility:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "meeting", "--date", "2026-06-16", "--time", "10:00"],
+                ["event", "add", "meeting", "--at", "2026-06-16 10:00"],
                 cwd=Path(tmpdir),
             )
 

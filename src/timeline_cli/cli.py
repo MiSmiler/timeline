@@ -151,11 +151,14 @@ def _dispatch(args: argparse.Namespace) -> None:
 
 def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
     """Setup todo subcommand parsers."""
-    # todo add (Issue #45: new order TEXT --date DATE --time TIME)
+    # todo add (Issue #70: --at parameter)
     add_parser = subparsers.add_parser("add", help="Add a new todo")
     add_parser.add_argument("text", help="Todo text")
-    add_parser.add_argument("--date", required=True, help="Date in YYYY-MM-DD format")
-    add_parser.add_argument("--time", help="Time in HH:MM format")
+    add_parser.add_argument(
+        "--at",
+        required=True,
+        help="Time spec (e.g., 'today', 'YYYY-MM-DD', 'YYYY-MM-DD HH:MM', 'now', '+2h', '' for undated)",
+    )
     add_parser.add_argument("--detail", action="append", help="Detail lines")
 
     # todo list (Issue #45: --range required)
@@ -179,12 +182,14 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
     abandon_parser = subparsers.add_parser("abandon", help="Abandon a todo")
     abandon_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
 
-    # todo edit (Issue #45: use --id)
+    # todo edit (Issue #70: --new-at parameter)
     edit_parser = subparsers.add_parser("edit", help="Edit a todo")
     edit_parser.add_argument("--id", required=True, help="Todo ID (e.g., 't7b3k')")
     edit_parser.add_argument("--new-text", help="New text")
-    edit_parser.add_argument("--new-time", help="New time in HH:MM format")
-    edit_parser.add_argument("--clear-time", action="store_true", help="Clear time field")
+    edit_parser.add_argument(
+        "--new-at",
+        help="New time spec (e.g., 'today', 'YYYY-MM-DD HH:MM', 'now', '' for undated)",
+    )
     edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
 
@@ -196,11 +201,14 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
 
 def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     """Setup event subcommand parsers."""
-    # event add (Issue #46: new order TEXT --date DATE --time TIME)
+    # event add (Issue #70: --at parameter)
     add_parser = subparsers.add_parser("add", help="Add a new event")
     add_parser.add_argument("text", help="Event text")
-    add_parser.add_argument("--date", required=True, help="Date in YYYY-MM-DD format")
-    add_parser.add_argument("--time", required=True, help="Time in HH:MM format")
+    add_parser.add_argument(
+        "--at",
+        required=True,
+        help="Time spec (e.g., 'today HH:MM', 'YYYY-MM-DD HH:MM', 'now', '-2h')",
+    )
     add_parser.add_argument("--detail", action="append", help="Detail lines")
 
     # event list (Issue #46: --range required)
@@ -210,11 +218,11 @@ def _setup_event_commands(subparsers: argparse._SubParsersAction) -> None:
     list_parser.add_argument("--show-id", action="store_true", help="Show event IDs in output")
     list_parser.add_argument("--contains", help="Filter by text substring")
 
-    # event edit (Issue #46: use --id)
+    # event edit (Issue #70: --new-at parameter)
     edit_parser = subparsers.add_parser("edit", help="Edit an event")
     edit_parser.add_argument("--id", required=True, help="Event ID (e.g., 'e4x1m')")
     edit_parser.add_argument("--new-text", help="New text")
-    edit_parser.add_argument("--new-time", help="New time in HH:MM format")
+    edit_parser.add_argument("--new-at", help="New time specification (e.g., 'today 15:00', 'now', '-2h')")
     edit_parser.add_argument("--append-detail", action="append", help="Append a detail line")
     edit_parser.add_argument("--set-detail", help="Replace all details (newline-separated)")
 

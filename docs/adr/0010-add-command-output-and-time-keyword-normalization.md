@@ -1,4 +1,4 @@
-# 10. Add Command Output and Time Keyword Normalization
+# 10. Add Command Output and Time Parameter Design
 
 ## Status
 
@@ -6,107 +6,141 @@ Accepted
 
 ## Context
 
-The `todo add` and `event add` commands currently display the user's original input in the output message, without normalizing relative keywords. For example:
+The `todo add` and `event add` commands currently use separate `--date` and `--time` parameters. This design has several issues:
 
-```bash
-$ timeline-cli todo add "Review PR" --date today
-[txxxx] Added: Review PR (today)
-```
+1. **Parameter redundancy**: Users must specify both `--date today --time now` when they just want "current moment".
+2. **Semantic confusion**: `--time now` only represents time, but users naturally think "now" = current date + current time.
+3. **Output inconsistency**: ADR-0010 addressed output normalization, but the parameter structure remains fragmented.
+4. **Constraint complexity**: The constraint "`--time now` only valid when date is today" requires cross-parameter validation.
 
-This causes several issues:
-
-1. **Ambiguity**: "today" is a relative keyword that changes meaning over time. A user reading the output later may not know which specific date was meant.
-2. **Inconsistency**: `event add` output format differs from `todo add` and does not display the date at all: `[exxxx] Added: Review PR at 14:00`.
-3. **No explicit "no value" marker**: When time is omitted, the output shows `(date)` without indicating whether time was intentionally unset.
-
-Additionally, users may want to use `--time now` to capture the current time, but this is currently not supported. The keyword `now` exists in the system for `--range` but has different semantics (full datetime vs. time-only).
+Additionally, users want:
+- Quick capture of relative time offsets (e.g., "2 hours ago", "30 minutes later")
+- Relative date + explicit time combinations (e.g., "today 15:00")
+- Simplified command invocation
 
 ## Decision
 
-### 1. Scope
+### 1. Merge `--date` and `--time` into `--at`
 
-Apply changes to:
-- `todo add`, `event add`
-- `todo edit --new-time`, `event edit --new-time`
+Replace separate `--date` and `--time` parameters with a single `--at` parameter that accepts both date and time information.
 
-### 2. Normalize Output to Explicit Values
+**Requirement**: `--at` must be explicitly specified. No default value.
 
-All `add` commands will output normalized, explicit values:
+### 2. `--at` Parameter Syntax
+
+| Input | Parsed Result | Notes |
+|-------|---------------|-------|
+| `"2026-06-22 15:00"` | date=2026-06-22, time=15:00 | Explicit datetime |
+| `"now"` | date=today, time=current HH:MM | Current moment |
+| `"2026-06-22"` | date=2026-06-22, time=None | Date only |
+| `"today"` | date=today, time=None | Relative date |
+| `"yesterday"` | date=yesterday, time=None | Relative date |
+| `"tomorrow"` | date=tomorrow, time=None | Relative date |
+| `"today 15:00"` | date=today, time=15:00 | Relative date + explicit time |
+| `"yesterday 10:00"` | date=yesterday, time=10:00 | Relative date + explicit time |
+| `"tomorrow 09:00"` | date=tomorrow, time=09:00 | Relative date + explicit time |
+| `"15:00"` | date=today, time=15:00 | Time only, defaults to today |
+| `""` | undated | No date, no time |
+| `"+2h"` | date=today, time=now+2h | Relative time offset |
+| `"-30m"` | date=today, time=now-30m | Relative time offset |
+| `"+2h30m"` | date=today, time=now+2h30m | Combined offset |
+
+### 3. Relative Time Offset Syntax
+
+**Syntax**: `[+/-]<value><unit>[<value><unit>]`
+
+**Units** (lowercase only):
+- `m` or `min`: minutes
+- `h`: hours
+
+**Examples**:
+- `+15m`, `-2h`, `+2h30m`, `-1h15min`
+
+**Base**: Always `now` (current datetime)
+
+**Range constraint**: Total offset must not exceed ±72 hours.
+
+**Forbidden combinations**:
+- Relative date + relative offset: `"today +2h"` is NOT allowed
+- Use `"+2h"` directly (base is `now`), or `"today 15:00"` (explicit time)
+
+### 4. Time Constraints by Command Type
+
+**Event** (records of things that happened):
+- Forbidden: Time later than `now` (for both `--at` and `--new-at`)
+- Allowed: Time earlier than `now` (past events)
+- Reason: Events represent "things that already happened", cannot be future
+
+**Todo** (tasks to be done):
+- Allowed: Any time (past, present, future)
+- Reason: Todos can be scheduled for any time
+
+### 5. Edit Command: `--new-at`
+
+Replace `--new-time` with `--new-at`:
+```bash
+timeline-cli event edit e123 --new-at "15:00"
+timeline-cli todo edit t123 --new-at "today 10:00"
+```
+
+**Todo edit conversion**:
+- `undated → dated`: `--new-at "today 15:00"` (allowed)
+- `dated → undated`: `--new-at ""` (allowed)
+
+**Event edit constraint**:
+- `--new-at` must not be later than `now` (same as add)
+
+### 6. Output Format (unchanged from ADR-0010)
 
 | Scenario | Output Format |
 |----------|---------------|
 | Has date and time | `[id] Added: text (YYYY-MM-DD HH:MM)` |
 | Has date, no time | `[id] Added: text (YYYY-MM-DD no-time)` |
-| No date (undated todo) | `[id] Added: text (undated)` |
+| No date (undated) | `[id] Added: text (undated)` |
 
-**Examples:**
+Output always shows normalized, explicit values. Original input is not preserved.
 
+**Examples**:
 ```bash
-$ timeline-cli todo add "Review PR" --date today --time now
-[txxxx] Added: Review PR (2026-06-22 14:30)
+$ timeline-cli todo add "Review PR" --at "+2h"
+[txxxx] Added: Review PR (2026-06-22 16:30)
 
-$ timeline-cli todo add "Write tests" --date today
+$ timeline-cli todo add "Write tests" --at today
 [txxxx] Added: Write tests (2026-06-22 no-time)
 
-$ timeline-cli todo add "Someday task" --date ?
+$ timeline-cli todo add "Someday task" --at ""
 [txxxx] Added: Someday task (undated)
 
-$ timeline-cli event add "Meeting" --date today --time 15:00
-[exxxx] Added: Meeting (2026-06-22 15:00)
-```
-
-### 3. Keyword Support
-
-| Parameter | Supported Keywords | Resolves To | Constraint |
-|-----------|-------------------|-------------|------------|
-| `--date` | `today`, `yesterday`, `tomorrow`, `YYYY-MM-DD`, `?` | `YYYY-MM-DD` | Does NOT support `now` |
-| `--time` | `now`, `HH:MM` | `HH:MM` | `now` only valid when date is today |
-| `--range` | `now`, `today`, etc. | datetime or date | No additional constraints |
-
-### 4. `now` Semantics by Context
-
-Accept context-dependent semantics for `now`:
-
-- `--time now` → resolves to current time (`HH:MM`)
-- `--range ..now` → resolves to full datetime (date + time)
-
-This ambiguity is acceptable because the parameter context (`--time` vs `--range`) clearly disambiguates.
-
-### 5. Constraint: `--time now` Requires Today
-
-`--time now` (and `--new-time now`) is only valid when the associated date equals today's date.
-
-**Validation:**
-- For `add`: check `--date` value
-- For `edit`: check the existing item's date
-
-**Error message when constraint violated:**
-
-```
-Error: '--time now' can only be used when the date is today.
-Current date is 2026-06-22, but specified date is 2026-06-20.
-```
-
-**Error message for `--date now`:**
-
-```
-Error: '--date' does not support 'now'. Use 'today' instead.
+$ timeline-cli event add "Meeting" --at "yesterday 15:00"
+[exxxx] Added: Meeting (2026-06-21 15:00)
 ```
 
 ## Consequences
 
 ### Positive
 
-- **Clarity**: Output always shows explicit, unambiguous values.
-- **Consistency**: `todo add` and `event add` have uniform output format.
-- **User convenience**: `--time now` allows quick capture of current time.
-- **Semantic safety**: Constraint on `now` prevents illogical combinations (e.g., "yesterday at now").
+- **Simplified invocation**: `--at now` replaces `--date today --time now`
+- **Unified semantics**: `now` naturally means "current moment" (date + time)
+- **Flexible input**: Relative dates, explicit times, and offsets all supported
+- **Clear constraints**: Event cannot be future, Todo can be anything
+- **Prevents unreasonable offsets**: ±72h limit prevents "100 hours ago" nonsense
 
 ### Negative
 
-- **Implementation complexity**: Requires date validation for `--time now`.
-- **Potential user confusion**: `now` has different meanings in different contexts, though parameter context disambiguates.
+- **Breaking change**: Users must adapt from `--date`/`--time` to `--at`
+- **Complex parsing**: More input formats to handle
+- **Potential confusion**: `"today +2h"` is forbidden, users must learn distinction
 
 ### Migration
 
-No data migration required. Only affects CLI output and argument parsing.
+No data migration required. Only affects CLI argument parsing.
+
+**User migration guide**:
+```bash
+# Old → New
+--date today --time now      → --at now
+--date today --time 15:00    → --at "today 15:00"  or --at "15:00"
+--date 2026-06-22 --time 10  → --at "2026-06-22 10:00"
+--date today                 → --at today
+--date ?                     → --at ""
+```
