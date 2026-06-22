@@ -27,6 +27,62 @@ def to_json_line(obj) -> str:
     return json.dumps(obj, ensure_ascii=False)
 
 
+def _format_event_item(event: "Event", show_id: bool = False) -> str:
+    """Format a single event item as markdown.
+
+    Args:
+        event: Event object
+        show_id: Whether to show event ID
+
+    Returns:
+        Markdown formatted string for the event item
+    """
+    id_str = f"({event.id}) " if show_id and event.id else ""
+    lines = [f"- {event.time} {id_str}{event.text}"]
+
+    # Add details with 2-space indentation
+    for detail in event.details:
+        lines.append(f"  - {detail}")
+
+    return "\n".join(lines)
+
+
+def _format_todo_item(todo: "Todo", show_id: bool = False) -> str:
+    """Format a single todo item as markdown.
+
+    Args:
+        todo: Todo object
+        show_id: Whether to show todo ID
+
+    Returns:
+        Markdown formatted string for the todo item
+    """
+    # Status marker: checkbox format
+    if todo.status == "completed":
+        status_marker = "[x]"
+    elif todo.status == "abandoned":
+        status_marker = "[ ]"
+    else:  # pending
+        status_marker = "[ ]"
+
+    # ID string
+    id_str = f"({todo.id}) " if show_id and todo.id else ""
+
+    # Time string (no placeholder for untimed)
+    time_str = f"{todo.time} " if todo.time else ""
+
+    # Text (with strikethrough for abandoned)
+    text = f"~~{todo.text}~~" if todo.status == "abandoned" else todo.text
+
+    lines = [f"- {status_marker} {time_str}{id_str}{text}"]
+
+    # Add details with 2-space indentation
+    for detail in todo.details:
+        lines.append(f"  - {detail}")
+
+    return "\n".join(lines)
+
+
 def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False) -> str:
     """Format todos as markdown.
 
@@ -54,15 +110,8 @@ def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False
         lines.append(header)
 
         for todo in groups[date]:
-            # Format: [time] text or just text
-            time_str = f"{todo.time} " if todo.time else "- "
-            id_str = f"({todo.id}) " if show_id and todo.id else ""
-            status_str = f"[{todo.status}]"
-            lines.append(f"- {time_str}{id_str}{status_str} {todo.text}")
-
-            # Add details indented
-            for detail in todo.details:
-                lines.append(f"  - {detail}")
+            # Format using component
+            lines.append(_format_todo_item(todo, show_id))
 
         lines.append("")  # Blank line after each date group
 
@@ -135,13 +184,8 @@ def format_events_markdown(events: list[tuple[str, "Event"]], show_id: bool = Fa
         lines.append(header)
 
         for event in groups[date]:
-            # Format: time text
-            id_str = f"({event.id}) " if show_id and event.id else ""
-            lines.append(f"- {event.time} {id_str}{event.text}")
-
-            # Add details indented
-            for detail in event.details:
-                lines.append(f"  - {detail}")
+            # Format using component
+            lines.append(_format_event_item(event, show_id))
 
         lines.append("")  # Blank line after each date group
 

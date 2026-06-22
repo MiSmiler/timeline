@@ -1,8 +1,12 @@
 """Tests for diary command (#56)."""
 
+import sys
 import tempfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
+# Add src directory to PYTHONPATH for direct imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from conftest import run_cli
 
@@ -152,9 +156,13 @@ class TestDiaryCommand:
             result = run_cli(["diary"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            # Should show details indented
-            assert "    - discussed timeline" in result.stdout
-            assert "    - need to review" in result.stdout
+            # Should show details indented with 2 spaces (not 4)
+            # Note: We need to check both that 2-space exists and 4-space does not
+            assert "  - discussed timeline" in result.stdout
+            assert "  - need to review" in result.stdout
+            # Verify 4-space indent is NOT used
+            assert "    - discussed timeline" not in result.stdout
+            assert "    - need to review" not in result.stdout
 
     def test_diary_todo_status_completed(self):
         """Test diary shows completed todos with [x] marker."""
@@ -212,3 +220,33 @@ class TestDiaryCommand:
             # Should show that date
             assert "# 2026-06-15" in result.stdout
             assert "10:00 Event" in result.stdout
+
+    def test_diary_uses_shared_components(self):
+        """Diary should use same formatting components as list commands."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            today = date.today().isoformat()
+
+            # Initialize
+            run_cli(["init"], cwd=Path(tmpdir))
+
+            # Add todo with details
+            run_cli(["todo", "add", "Task", "--date", today, "--detail", "detail1"], cwd=Path(tmpdir))
+
+            # Add event with details
+            run_cli(
+                ["event", "add", "Meeting", "--date", today, "--time", "10:00", "--detail", "detail2"], cwd=Path(tmpdir)
+            )
+
+            # Run diary
+            result = run_cli(["diary"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Verify details use 2-space indent (same as list commands)
+            assert "  - detail1" in result.stdout
+            assert "  - detail2" in result.stdout
+
+            # Verify format matches list commands
+            # Todo should use checkbox format
+            assert "[ ]" in result.stdout
+            # Event should use same format as event list
+            assert "- 10:00 Meeting" in result.stdout

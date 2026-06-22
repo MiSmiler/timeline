@@ -1,8 +1,12 @@
 """Tests for output format simplification (Issue #51)."""
 
 import json
+import sys
 import tempfile
 from pathlib import Path
+
+# Add src directory to PYTHONPATH for direct imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from conftest import run_cli
 
@@ -300,3 +304,95 @@ class TestContainsParameter:
             assert result.returncode == 0
             assert "team meeting" in result.stdout
             assert "lunch" not in result.stdout
+
+    def test_todo_list_completed_status_as_checkbox(self):
+        """Todo list should show completed status as [x]."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["todo", "add", "Task", "--date", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            todo_id = result.stdout.split("[")[1].split("]")[0]
+            run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
+
+            # List
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert "- [x] Task" in result.stdout
+
+    def test_todo_list_abandoned_status_with_strikethrough(self):
+        """Todo list should show abandoned status with strikethrough."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(
+                ["todo", "add", "Task", "--date", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            todo_id = result.stdout.split("[")[1].split("]")[0]
+            run_cli(["todo", "abandon", "--id", todo_id], cwd=Path(tmpdir))
+
+            # List
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            assert "- [ ] ~~Task~~" in result.stdout
+
+    def test_todo_list_no_time_no_placeholder(self):
+        """Todo list should not show - placeholder for untimed todos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Setup
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Task", "--date", "2026-06-18"], cwd=Path(tmpdir))
+
+            # List
+            result = run_cli(
+                ["todo", "list", "--range", "2026-06-18"],
+                cwd=Path(tmpdir),
+            )
+            assert result.returncode == 0
+            # Should NOT have "- - [ ] Task" (no placeholder dash)
+            assert "- [ ] Task" in result.stdout
+            assert "- - [ ] Task" not in result.stdout
+
+    def test_format_event_item_component(self):
+        """_format_event_item should format single event correctly."""
+        from timeline_cli.models import Event
+        from timeline_cli.output_formatter import _format_event_item
+
+        # Event without ID
+        event = Event(time="10:00", text="Meeting", details=["discussed timeline"])
+        result = _format_event_item(event, show_id=False)
+        assert result == "- 10:00 Meeting\n  - discussed timeline"
+
+        # Event with ID
+        event_with_id = Event(time="14:00", text="Workshop", details=[], id="e123")
+        result = _format_event_item(event_with_id, show_id=True)
+        assert result == "- 14:00 (e123) Workshop"
+
+    def test_format_todo_item_component(self):
+        """_format_todo_item should format single todo correctly."""
+        from timeline_cli.models import Todo
+        from timeline_cli.output_formatter import _format_todo_item
+
+        # Pending todo without time
+        todo = Todo(time=None, text="Task", status="pending", details=["detail1"])
+        result = _format_todo_item(todo, show_id=False)
+        assert result == "- [ ] Task\n  - detail1"
+
+        # Completed todo with time
+        todo_completed = Todo(time="14:00", text="Done", status="completed", details=[])
+        result = _format_todo_item(todo_completed, show_id=False)
+        assert result == "- [x] 14:00 Done"
+
+        # Abandoned todo with ID
+        todo_abandoned = Todo(time=None, text="Old", status="abandoned", details=[], id="t123")
+        result = _format_todo_item(todo_abandoned, show_id=True)
+        assert result == "- [ ] (t123) ~~Old~~"
