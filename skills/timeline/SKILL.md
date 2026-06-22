@@ -1,345 +1,412 @@
 ---
 name: timeline
-description: "timeline-cli 操作指南。定义 Todo/Event/Note 的 CRUD 操作语义、日期处理、定位规则和错误处理策略。"
-tags: []
-related_skills: []
+description: "timeline-cli 操作指南。定义 Todo/Event/Note 的 CRUD 操作、日期处理规则和 CLI 命令语法。"
 ---
 
 # Timeline CLI 操作指南
 
 timeline-cli 是一个基于 JSONL 存储的待办/事件/笔记管理工具。Agent 应通过 CLI 命令操作数据，而非直接操作文件。
 
-数据格式参考：[reference/data-format.md](reference/data-format.md)
+---
+
+## 概述
+
+**存储位置**：`.timelines.jsonl`（项目目录下的隐藏文件）
+
+**首次使用**：需运行 `timeline-cli init` 初始化存储文件
+
+**命令结构**：`timeline-cli <resource> <action> [args]`
+
+**JSON 输出优先**：查询类命令（`todo list`、`event list`）支持 `--json` 参数。Agent 查询数据时应优先使用 `--json`，JSONlines 格式更易于解析和分析。
 
 ---
 
 ## 日期处理
 
-CLI 只接受 `YYYY-MM-DD` 格式的日期（如 `2026-06-17`）。
+### `--date` 参数（add 命令）
 
-Agent 负责将自然语言日期转换为标准格式：
-- "今天" → 当前日期
-- "明天" → 当前日期 + 1
-- "昨天" → 当前日期 - 1
-- "下周一" → 计算具体日期
+接受以下格式：
+- `YYYY-MM-DD` — 具体日期（如 `2026-06-22`）
+- `today` / `yesterday` / `tomorrow` — 相对日期
+- `0000-00-00` — 无日期（undated todo）
+
+### `--range` 参数（list 命令）
+
+接受更多格式：
+- `..` — 所有记录
+- `today` / `yesterday` / `tomorrow` — 当天/前一天/后一天
+- `YYYY-MM-DD` — 特定日期
+- `YYYY-MM-DD..YYYY-MM-DD` — 日期范围
+- `..today` / `today..` — 相对范围
+- `..now` / `now..` — 相对当前时间
+- `YYYY-MM-DDTHH:MM..` — 精确时间点
+- `?` — 无日期记录（undated）
+
+### `diary` 命令的日期参数
+
+接受以下格式：
+- `YYYY-MM-DD` — 具体日期
+- `today` / `yesterday` / `tomorrow` — 相对日期
+- 不提供参数时默认为 `today`
 
 ---
 
-## 操作语义
+## Todo 操作
 
-以下操作均通过 `timeline-cli` 命令执行。推荐使用 `--json` 参数获取结构化输出。
-
-### Todo 操作
-
-#### 创建 Todo
+### 添加 Todo
 
 ```bash
-timeline-cli todo add <date> <text> [--time TIME] [--detail DETAIL]
+timeline-cli todo add TEXT --date DATE [--time TIME] [--detail DETAIL]
 ```
 
-- `date`: 必填，YYYY-MM-DD 格式
-- `text`: 必填，待办描述
-- `--time`: 可选，HH:MM 格式
-- `--detail`: 可选，详情文本
+参数：
+- `TEXT` — 必填，待办描述（位置参数）
+- `--date DATE` — 必填，日期（见「日期处理」章节）
+- `--time TIME` — 可选，时间（HH:MM 格式）
+- `--detail DETAIL` — 可选，详情文本
 
 示例：
 ```bash
-# 创建无时间待办
-timeline-cli todo add 2026-06-17 "写测试"
+# 创建今日待办
+timeline-cli todo add "写单元测试" --date today
 
-# 创建有时间待办
-timeline-cli todo add 2026-06-17 "开会" --time 14:00
+# 创建有时间的待办
+timeline-cli todo add "开会" --date 2026-06-22 --time 14:00
+
+# 创建无日期待办
+timeline-cli todo add "有空时整理桌面" --date 0000-00-00
 
 # 创建带详情的待办
-timeline-cli todo add 2026-06-17 "整理桌面" --detail "扔掉过期零食"
+timeline-cli todo add "修复 bug" --date today --detail "用户反馈的登录问题"
 ```
 
-#### 完成 Todo
+### 完成 Todo
 
 ```bash
-timeline-cli todo complete <date> [--time TIME] <text_prefix>
+timeline-cli todo complete --id ID
 ```
 
-- 定位：`date + text` 全文匹配，歧义时需加 `--time`
-- 推荐：完成后可选创建 Event 记录完成时间
+参数：
+- `--id ID` — 必填，Todo ID（如 `t7b3k`）
 
 示例：
 ```bash
-timeline-cli todo complete 2026-06-17 "写测试"
+timeline-cli todo complete --id t7b3k
 ```
 
-#### 放弃 Todo
+### 放弃 Todo
 
 ```bash
-timeline-cli todo abandon <date> [--time TIME] <text_prefix>
+timeline-cli todo abandon --id ID
 ```
 
-- 放弃保留记录，状态变为 `abandoned`
-- 与删除的区别：放弃保留条目，删除则移除
+参数：
+- `--id ID` — 必填，Todo ID
+
+放弃保留记录，状态变为 `abandoned`。与删除的区别：放弃保留条目，删除则移除。
 
 示例：
 ```bash
-timeline-cli todo abandon 2026-06-17 "过期的任务"
+timeline-cli todo abandon --id t7b3k
 ```
 
-#### 编辑 Todo
+### 编辑 Todo
 
 ```bash
-timeline-cli todo edit <date> [--time TIME] <text_prefix> \
-  [--new-text TEXT] [--new-time TIME] \
-  [--append-detail TEXT] [--set-detail TEXT]
+timeline-cli todo edit --id ID [--new-text TEXT] [--new-time TIME] \
+  [--clear-time] [--append-detail TEXT] [--set-detail TEXT]
 ```
 
-- `--new-text`: 更新描述
-- `--new-time`: 更新时间
-- `--append-detail`: 追加详情
-- `--set-detail`: 覆盖详情
+参数：
+- `--id ID` — 必填，Todo ID
+- `--new-text TEXT` — 可选，更新描述
+- `--new-time TIME` — 可选，更新时间（HH:MM）
+- `--clear-time` — 可选，清除时间字段
+- `--append-detail TEXT` — 可选，追加详情
+- `--set-detail TEXT` — 可选，覆盖详情（多行用换行分隔）
 
 示例：
 ```bash
 # 更新描述
-timeline-cli todo edit 2026-06-17 "写测试" --new-text "写单元测试"
-
-# 追加详情
-timeline-cli todo edit 2026-06-17 "写测试" --append-detail "需要 mock"
+timeline-cli todo edit --id t7b3k --new-text "写单元测试和集成测试"
 
 # 更新时间
-timeline-cli todo edit 2026-06-17 "开会" --time 14:00 --new-time 15:00
+timeline-cli todo edit --id t7b3k --new-time 15:00
+
+# 清除时间
+timeline-cli todo edit --id t7b3k --clear-time
+
+# 追加详情
+timeline-cli todo edit --id t7b3k --append-detail "需要 mock 外部 API"
+
+# 覆盖详情（多行）
+timeline-cli todo edit --id t7b3k --set-detail "第一行详情
+第二行详情"
 ```
 
-#### 移动 Todo
+### 删除 Todo
 
 ```bash
-timeline-cli todo move <from_date> <to_date> [--time TIME] <text_prefix>
+timeline-cli todo delete --id ID [--yes]
 ```
 
-- 将待办从一个日期移动到另一个日期
+参数：
+- `--id ID` — 必填，Todo ID
+- `--yes` — 可选，跳过确认提示
+
+**删除前需确认**：Agent 应先向用户确认是否删除，确认后使用 `--yes` 参数。
 
 示例：
 ```bash
-timeline-cli todo move 2026-06-17 2026-06-18 "写测试"
+# Agent 向用户确认后执行
+timeline-cli todo delete --id t7b3k --yes
 ```
 
-#### 删除 Todo
+### 查询 Todo
 
 ```bash
-timeline-cli todo delete <date> [--time TIME] <text_prefix> [--yes]
+timeline-cli todo list --range RANGE [--json] [--show-id] \
+  [--contains TEXT] [--time TIME] [--status STATUS]
 ```
 
-- **删除前确认**：Agent 先与用户确认，确认后加 `--yes` 参数
-- 删除不留痕迹，与放弃不同
+参数：
+- `--range RANGE` — 必填，日期范围（见「日期处理」章节）
+- `--json` — 可选，JSONlines 格式输出
+- `--show-id` — 可选，在输出中显示 ID
+- `--contains TEXT` — 可选，文本子串筛选
+- `--time TIME` — 可选，按时间筛选（HH:MM）
+- `--status STATUS` — 可选，按状态筛选（`pending`/`completed`/`abandoned`）
 
 示例：
 ```bash
-# Agent 确认后执行
-timeline-cli todo delete 2026-06-17 "废弃的任务" --yes
+# 查看今日所有待办（JSON 输出，推荐用于 Agent）
+timeline-cli todo list --range today --json
+
+# 查看今日待办（markdown 输出，适合展示给用户）
+timeline-cli todo list --range today
+
+# 查看过期待办
+timeline-cli todo list --range ..now --status pending --json
+
+# 查看无日期待办
+timeline-cli todo list --range ? --json
+
+# 文本筛选
+timeline-cli todo list --range .. --contains "测试" --json
 ```
-
-#### 补充 Todo 详情
-
-```bash
-timeline-cli todo edit <date> [--time TIME] <text_prefix> --append-detail TEXT
-```
-
-- 可多次追加，不会覆盖已有详情
 
 ---
 
-### Event 操作
+## Event 操作
 
-#### 创建 Event
+### 添加 Event
 
 ```bash
-timeline-cli event add <date> --time TIME <text> [--detail DETAIL]
+timeline-cli event add TEXT --date DATE --time TIME [--detail DETAIL]
 ```
 
-- `--time`: **必填**，HH:MM 格式
-- 用户未指定时间时，默认使用当前时间
+参数：
+- `TEXT` — 必填，事件描述（位置参数）
+- `--date DATE` — 必填，日期
+- `--time TIME` — 必填，时间（HH:MM 格式）
+- `--detail DETAIL` — 可选，详情文本
 
 示例：
 ```bash
-timeline-cli event add 2026-06-17 --time 09:00 "团队会议"
-timeline-cli event add 2026-06-17 --time 14:30 "完成报告" --detail "提交到系统"
+# 创建事件
+timeline-cli event add "团队会议" --date 2026-06-22 --time 09:00
+
+# 创建带详情的事件
+timeline-cli event add "完成报告" --date today --time 14:30 --detail "提交到系统"
 ```
 
-#### 编辑 Event
+### 编辑 Event
 
 ```bash
-timeline-cli event edit <date> <time> <text_prefix> \
-  [--new-text TEXT] [--new-time TIME] \
+timeline-cli event edit --id ID [--new-text TEXT] [--new-time TIME] \
   [--append-detail TEXT] [--set-detail TEXT]
 ```
 
-- 定位：`date + time + text` 匹配
+参数：
+- `--id ID` — 必填，Event ID（如 `e4x1m`）
+- `--new-text TEXT` — 可选，更新描述
+- `--new-time TIME` — 可选，更新时间（HH:MM）
+- `--append-detail TEXT` — 可选，追加详情
+- `--set-detail TEXT` — 可选，覆盖详情（多行用换行分隔）
 
 示例：
 ```bash
-timeline-cli event edit 2026-06-17 09:00 "团队会议" --new-time 10:00
+# 更新时间
+timeline-cli event edit --id e4x1m --new-time 10:00
+
+# 追加详情
+timeline-cli event edit --id e4x1m --append-detail "会议纪录已发送"
 ```
 
-#### 删除 Event
+### 删除 Event
 
 ```bash
-timeline-cli event delete <date> <time> <text_prefix> [--yes]
+timeline-cli event delete --id ID [--yes]
 ```
 
-- **删除前确认**：Agent 先与用户确认，确认后加 `--yes` 参数
+参数：
+- `--id ID` — 必填，Event ID
+- `--yes` — 可选，跳过确认提示
+
+**删除前需确认**：Agent 应先向用户确认是否删除，确认后使用 `--yes` 参数。
 
 示例：
 ```bash
-timeline-cli event delete 2026-06-17 09:00 "取消的会议" --yes
+timeline-cli event delete --id e4x1m --yes
 ```
 
-#### 补充 Event 详情
+### 查询 Event
 
 ```bash
-timeline-cli event edit <date> <time> <text_prefix> --append-detail TEXT
+timeline-cli event list --range RANGE [--json] [--show-id] [--contains TEXT]
+```
+
+参数：
+- `--range RANGE` — 必填，日期范围
+- `--json` — 可选，JSONlines 格式输出
+- `--show-id` — 可选，在输出中显示 ID
+- `--contains TEXT` — 可选，文本子串筛选
+
+示例：
+```bash
+# 查看今日事件（JSON 输出，推荐用于 Agent）
+timeline-cli event list --range today --json
+
+# 查看今日事件（markdown 输出，适合展示给用户）
+timeline-cli event list --range today
+
+# 查看本周事件
+timeline-cli event list --range 2026-06-16..2026-06-22 --json
+
+# 显示 ID
+timeline-cli event list --range today --show-id
 ```
 
 ---
 
-### Note 操作
+## Note 操作
 
-#### 添加 Note
+### 添加 Note
 
 ```bash
-timeline-cli note add <date> <text>
+timeline-cli note add DATE TEXT
 ```
 
-- 每个日期只有一个 Note
-- 如果已存在 Note，会报错
+参数：
+- `DATE` — 必填，日期（YYYY-MM-DD 格式）
+- `TEXT` — 必填，笔记内容
+
+每个日期只有一个 Note。已存在时会报错。
 
 示例：
 ```bash
-timeline-cli note add 2026-06-17 "今天很高效，完成了三个任务"
+timeline-cli note add 2026-06-22 "今天很高效，完成了三个任务"
 ```
 
-#### 查看 Note
+### 查看 Note
 
 ```bash
-timeline-cli note show <date>
+timeline-cli note show DATE
 ```
+
+参数：
+- `DATE` — 必填，日期（YYYY-MM-DD 格式）
 
 示例：
 ```bash
-timeline-cli note show 2026-06-17
+timeline-cli note show 2026-06-22
 ```
 
-#### 编辑 Note
+### 编辑 Note
 
 ```bash
-timeline-cli note edit <date> <text>
+timeline-cli note edit DATE TEXT
 ```
 
-- 完全覆盖原有 Note
+参数：
+- `DATE` — 必填，日期（YYYY-MM-DD 格式）
+- `TEXT` — 必填，新的笔记内容（完全覆盖）
 
 示例：
 ```bash
-timeline-cli note edit 2026-06-17 "更新后的笔记内容"
+timeline-cli note edit 2026-06-22 "更新后的笔记内容"
 ```
 
 ---
 
-### 查询与导出
+## Diary 命令
 
-#### 列出 Todo
+显示一天的完整视图（events + todos + notes），以 markdown 格式输出。
 
 ```bash
-timeline-cli todo list [--date DATE] [--time TIME] [--status STATUS] [--overdue] [--undated] [--json] [text_prefix]
+timeline-cli diary [DATE] [--show-id]
 ```
 
-- `--date`: 按日期筛选
-- `--time`: 按时间筛选
-- `--status`: 按状态筛选（`pending`/`completed`/`abandoned`）
-- `--overdue`: 显示过期待办
-- `--undated`: 显示无日期待办
-- `--json`: JSON 格式输出
-- `text_prefix`: 文本前缀匹配
+参数：
+- `DATE` — 可选，日期（默认 `today`，支持 `YYYY-MM-DD` 或 `today/yesterday/tomorrow`）
+- `--show-id` — 可选，在输出中显示各条目的 ID
 
 示例：
 ```bash
-# 列出所有未完成待办
-timeline-cli todo list --status pending --json
+# 查看今日
+timeline-cli diary
 
-# 列出特定日期的待办
-timeline-cli todo list --date 2026-06-17 --json
+# 查看昨日
+timeline-cli diary yesterday
+
+# 查看特定日期（显示 ID）
+timeline-cli diary 2026-06-22 --show-id
 ```
-
-#### 列出 Event
-
-```bash
-timeline-cli event list <date> [--json]
-```
-
-示例：
-```bash
-timeline-cli event list 2026-06-17 --json
-```
-
-#### 列出日期
-
-```bash
-timeline-cli list [--json]
-```
-
-- 列出所有有记录的日期
-
-#### 导出为 Markdown
-
-```bash
-timeline-cli export <date> --output-dir DIR
-timeline-cli export-all --output-dir DIR
-```
-
-- 导出单个日期或所有日期为 Markdown 文件
 
 ---
 
-## 错误处理
+## Doctor 命令
 
-### 常见错误类型
+校验数据完整性。
 
-#### ambiguous_match（匹配歧义）
+```bash
+timeline-cli doctor [--fix]
+```
 
-**原因**：多个条目匹配 `date + text` 条件
+参数：
+- `--fix` — 可选，自动修复可修复的问题（目前仅修复排序问题）
 
-**处理**：使用 `--time` 参数精确匹配
+校验项包括：JSON 有效性、schema_version、日期/时间格式、状态值、必填字段、排序、undated 约束、Note 唯一性、ID 唯一性。
 
 示例：
 ```bash
-# 歧义：两个待办都叫"开会"
-timeline-cli todo complete 2026-06-17 "开会"
-# 错误：ambiguous_match，显示候选条目
+# 校验数据
+timeline-cli doctor
 
-# 解决：加 --time
-timeline-cli todo complete 2026-06-17 "开会" --time 14:00 --yes
+# 校验并自动修复
+timeline-cli doctor --fix
 ```
 
-#### not_found（未找到）
+---
 
-**原因**：没有匹配的条目
+## 其他命令
 
-**处理**：检查日期、时间、文本是否正确
+### init
 
-#### validation_error（校验错误）
+初始化存储文件。
 
-**原因**：数据格式不符合约束（如 0000-00-00 中的 Event）
-
-**处理**：检查数据约束，使用 `timeline-cli doctor` 校验
-
-### 错误响应格式
-
-CLI 返回结构化错误信息（JSON 格式）：
-
-```json
-{
-  "error": "ambiguous_match",
-  "message": "Multiple todos match",
-  "candidates": [
-    {"time": "09:00", "text": "开会"},
-    {"time": "14:00", "text": "开会"}
-  ]
-}
+```bash
+timeline-cli init
 ```
 
-Agent 应根据 `error` 字段决定重试策略。
+创建 `.timelines.jsonl` 文件。文件已存在时会报错。
+
+### list
+
+列出所有有记录的日期。
+
+```bash
+timeline-cli list
+```
+
+输出 markdown 格式，显示每个日期及该日期的条目数量。
