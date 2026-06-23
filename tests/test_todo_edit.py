@@ -29,7 +29,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["text"] == "new task"
 
@@ -72,7 +72,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["time"] == "14:00"
 
@@ -115,7 +115,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             # Should no longer be in 2026-06-16
             items_old = read_items_by_date(storage_file, "2026-06-16")
             assert len(items_old["todos"]) == 0
@@ -161,7 +161,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             # Should be in undated (0000-00-00)
             items = read_items_by_date(storage_file, "0000-00-00")
             assert len(items["todos"]) == 1
@@ -184,7 +184,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             # Should no longer be in undated
             items_old = read_items_by_date(storage_file, "0000-00-00")
             assert len(items_old["todos"]) == 0
@@ -210,7 +210,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["time"] is None
 
@@ -232,7 +232,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert "extra info" in items["todos"][0]["details"]
 
@@ -275,7 +275,7 @@ class TestTodoEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["details"] == ["new 1", "new 2"]
 
@@ -350,7 +350,7 @@ class TestTodoDelete:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["todos"]) == 0
 
@@ -399,7 +399,7 @@ class TestTodoEditNewAtNow:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             today_str = date.today().isoformat()
             items = read_items_by_date(storage_file, today_str)
             # Time should be current HH:MM format

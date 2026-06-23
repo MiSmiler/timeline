@@ -23,7 +23,7 @@ class TestTodoAdd:
             assert result.returncode == 0
 
             # Verify: check the file
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             content = storage_file.read_text().strip().split("\n")
 
             # Should have header + one todo item
@@ -44,7 +44,7 @@ class TestTodoAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["time"] == "14:30"
 
@@ -58,7 +58,7 @@ class TestTodoAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["details"] == ["extra info"]
 
@@ -82,7 +82,7 @@ class TestTodoAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["details"] == ["line 1", "line 2"]
 
@@ -93,7 +93,7 @@ class TestTodoAdd:
             run_cli(["todo", "add", "task 1", "--at", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task 2", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["todos"]) == 2
 

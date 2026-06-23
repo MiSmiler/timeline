@@ -18,15 +18,19 @@ _Avoid_: Memo, thought
 
 ## Storage
 
-**Storage File**:
-Single `.timelines.jsonl` file in project directory (hidden file). Created by `timeline-cli init`. Contains schema version header and one item per line. This is the ONLY source of truth—users and agents must NOT edit it directly; always use timeline-cli.
-_Avoid_: Data file, database
+**Timeline Directory**:
+`.timeline/` directory in project working directory (hidden directory). Contains data file. Created by `timeline-cli init`. This is the ONLY source of truth—users and agents must NOT edit files directly; always use timeline-cli.
+_Avoid_: Data folder, storage folder
+
+**Data File**:
+`.timeline/data.jsonl` - JSON Lines file containing schema version header and one item per line. Must exist for CLI to function. Created by `timeline-cli init`.
+_Avoid_: Storage file, database
 
 **Schema Version**:
-Integer in file header (`{"schema_version": 1}`). Currently always 1. The `id` field for Todo/Event is part of v1 schema from the start.
+Integer in data file header (`{"schema_version": 1}`). Currently always 1. The `id` field for Todo/Event is part of v1 schema from the start.
 
 **Item**:
-One line in `.timelines.jsonl` representing a single Todo, Event, or Note. Each item has a `type` field (`"event"`, `"todo"`, or `"note"`) and all its properties. Items are sorted by `(date, type, time)` where type order is: event < todo < note. Undated Todos have `date: null` and sort last.
+One line in `.timeline/data.jsonl` representing a single Todo, Event, or Note. Each item has a `type` field (`"event"`, `"todo"`, or `"note"`) and all its properties. Items are sorted by `(date, type, time)` where type order is: event < todo < note. Undated Todos have `date: null` and sort last.
 _Avoid_: Entry, record, row
 
 **Daily Record**:
@@ -73,9 +77,9 @@ Applies to `todo list` and `event list`. The `list` command only supports markdo
 
 **Format Distinction**:
 CLI output format and storage format have different field orders—this is intentional.
-- Storage format (`.timelines.jsonl`): `type`, `date`, `time`, `text`, `details`, `id` — optimized for git diff readability.
+- Storage format (`.timeline/data.jsonl`): `type`, `date`, `time`, `text`, `details`, `id` — optimized for git diff readability.
 - Output format (`--json`): `id`, `date`, `time`, `text`, `status`, `details` — optimized for AI Agent operations (id first for quick reference).
-AI Agents should always consume CLI output, never read `.timelines.jsonl` directly.
+AI Agents should always consume CLI output, never read `.timeline/data.jsonl` directly.
 
 **Range Filter**:
 `--range` parameter (required for list commands). Syntax: `left..right`

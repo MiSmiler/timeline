@@ -111,12 +111,14 @@ def parse_at_parameter(value: str) -> AtParameter:
     Raises:
         TimelineValidationError: If format is invalid or constraints violated
     """
+    now = datetime.now()
+
     if value == "":
         return AtParameter(date=None, time=None)
 
     # Slice 4: Handle "now" keyword
     if value == "now":
-        return AtParameter(date=date.today().isoformat(), time=datetime.now().strftime("%H:%M"))
+        return AtParameter(date=now.date().isoformat(), time=now.strftime("%H:%M"))
 
     # Check for space-separated parts (Slice 1, 2)
     parts = value.split(maxsplit=1)
@@ -147,7 +149,8 @@ def parse_at_parameter(value: str) -> AtParameter:
 
     # Slice 3: Handle time-only format (HH:MM)
     if _is_valid_time_format(single):
-        return AtParameter(date=date.today().isoformat(), time=single)
+        # Default to today
+        return AtParameter(date=now.date().isoformat(), time=single)
 
     # Slice 1: Try to parse as date or keyword
     try:
@@ -189,6 +192,8 @@ def _parse_relative_offset(value: str) -> AtParameter:
     """
     import re
 
+    now = datetime.now()
+
     # Parse offset components
     sign = 1 if value.startswith("+") else -1
     offset_str = value[1:]  # Remove sign
@@ -214,20 +219,20 @@ def _parse_relative_offset(value: str) -> AtParameter:
             f"Time offset exceeds ±72 hours limit.\nSpecified offset: {value} ({total_minutes / 60:.1f} hours)."
         )
 
-    # Calculate new time
-    now = datetime.now()
+    # Calculate new time using the passed/defaulted now value
     new_dt = now + timedelta(minutes=total_minutes)
 
     return AtParameter(date=new_dt.date().isoformat(), time=new_dt.strftime("%H:%M"))
 
 
-def validate_event_time_not_future(at_param: AtParameter) -> None:
+def validate_event_time_not_future(at_param: AtParameter, now: datetime | None = None) -> None:
     """Validate that Event time is not later than now.
 
     Events represent "things that already happened", so they cannot be in the future.
 
     Args:
         at_param: Parsed --at parameter
+        now: Current datetime for testing. Defaults to datetime.now().
 
     Raises:
         TimelineValidationError: If the datetime is later than now
@@ -242,7 +247,8 @@ def validate_event_time_not_future(at_param: AtParameter) -> None:
     event_dt = datetime.combine(event_date, event_time)
 
     # Check against now
-    now = datetime.now()
+    if now is None:
+        now = datetime.now()
     if event_dt > now:
         raise TimelineValidationError(
             f"Event time cannot be later than now.\n"
@@ -250,25 +256,29 @@ def validate_event_time_not_future(at_param: AtParameter) -> None:
         )
 
 
-def parse_datetime(value: str) -> datetime | date:
+def parse_datetime(value: str, now: datetime | None = None) -> datetime | date:
     """Parse a datetime or date string.
 
     Args:
         value: String like "2026-06-17", "2026-06-17T14:30", "today", "yesterday", "tomorrow", or "now"
+        now: Current datetime for testing. Defaults to datetime.now().
 
     Returns:
         datetime or date object
     """
     from datetime import timedelta
 
+    if now is None:
+        now = datetime.now()
+
     if value == "today":
-        return date.today()
+        return now.date()
     if value == "yesterday":
-        return date.today() - timedelta(days=1)
+        return now.date() - timedelta(days=1)
     if value == "tomorrow":
-        return date.today() + timedelta(days=1)
+        return now.date() + timedelta(days=1)
     if value == "now":
-        return datetime.now()
+        return now
 
     # Try datetime format first
     if "T" in value:
