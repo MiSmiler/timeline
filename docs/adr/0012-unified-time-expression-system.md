@@ -104,11 +104,10 @@ timeline-cli todo list --no-time
 
 ### Negative
 
-- Requires migration from existing `--range` and `--time` usage.
 - `T` separator may feel unfamiliar initially.
 - More complex parsing logic with component combinations.
 
-### Migration
+### API Changes
 
 - Replace `--range` with `--at`.
 - Replace `--time HH:MM` with `--at HH:MM` or `--at todayTHH:MM`.

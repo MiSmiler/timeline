@@ -24,7 +24,6 @@ class TestTimepointParsing:
         assert tp.date == "2026-06-23"
         assert tp.time == "09:00"
         assert not tp.is_undated
-        assert not tp.is_now
 
     def test_parse_timepoint_explicit_date_only(self):
         """parse_timepoint("2026-06-23") -> date=2026-06-23, time=None"""
@@ -32,7 +31,6 @@ class TestTimepointParsing:
         assert tp.date == "2026-06-23"
         assert tp.time is None
         assert not tp.is_undated
-        assert not tp.is_now
 
     def test_parse_timepoint_relative_date_today(self):
         """parse_timepoint("today") -> date=today's date, time=None"""
@@ -63,7 +61,6 @@ class TestTimepointParsing:
         assert re.match(r"\d{4}-\d{2}-\d{2}", tp.date)
         assert tp.time == "09:00"
         assert not tp.is_undated
-        assert not tp.is_now
 
     def test_parse_timepoint_yesterday_with_T_separator(self):
         """parse_timepoint("yesterdayT10:30") -> date=yesterday, time=10:30"""
@@ -101,16 +98,14 @@ class TestTimepointParsing:
         assert tp.date is None
         assert tp.time is None
         assert tp.is_undated
-        assert not tp.is_now
 
     def test_parse_timepoint_now_keyword(self):
-        """parse_timepoint("now") -> date=today, time=current, is_now=True"""
+        """parse_timepoint("now") -> date=today, time=current"""
         now = datetime.now()
         tp = parse_timepoint("now")
         assert tp.date == now.date().isoformat()
         assert tp.time == now.strftime("%H:%M")
         assert not tp.is_undated
-        assert tp.is_now
 
     def test_parse_timepoint_now_with_explicit_time(self):
         """parse_timepoint("now", now=explicit) uses provided datetime."""
@@ -118,7 +113,6 @@ class TestTimepointParsing:
         tp = parse_timepoint("now", now=explicit_now)
         assert tp.date == "2026-06-23"
         assert tp.time == "14:30"
-        assert tp.is_now
 
     def test_parse_timepoint_empty_boundary_marker(self):
         """parse_timepoint("") -> date=None, time=None (boundary marker)"""
@@ -126,7 +120,6 @@ class TestTimepointParsing:
         assert tp.date is None
         assert tp.time is None
         assert not tp.is_undated  # empty is boundary, not undated keyword
-        assert not tp.is_now
 
     def test_parse_timepoint_space_separator_rejected(self):
         """parse_timepoint("2026-06-23 09:00") -> raise error (space separator rejected)"""
@@ -210,14 +203,9 @@ class TestTimepointHasTimeComponent:
         assert tp.has_time_component() is False
 
     def test_has_time_component_now_true(self):
-        """Now Timepoint -> has_time_component() returns True."""
-        tp = Timepoint(date="2026-06-23", time="14:30", is_now=True)
+        """Timepoint with time -> has_time_component() returns True."""
+        tp = Timepoint(date="2026-06-23", time="14:30")
         assert tp.has_time_component() is True
-
-    def test_has_time_component_now_without_explicit_time_true(self):
-        """Now Timepoint (time implicit) -> has_time_component() returns True."""
-        tp = Timepoint(date="2026-06-23", time=None, is_now=True)
-        assert tp.has_time_component() is True  # now implies time exists
 
 
 class TestTimerangeParsing:
@@ -414,10 +402,11 @@ class TestTimeExprParsing:
         assert te.timepoint.is_undated
 
     def test_parse_timeexpr_now_is_timepoint(self):
-        """now -> TimeExpr(kind='timepoint', is_now=True)"""
+        """now -> TimeExpr(kind='timepoint')"""
         te = TimeExpr.parse("now")
         assert te.kind == "timepoint"
-        assert te.timepoint.is_now
+        assert te.timepoint.date is not None  # resolved to concrete date
+        assert te.timepoint.time is not None  # resolved to concrete time
 
     def test_parse_timeexpr_empty_is_timerange(self):
         """.. -> TimeExpr(kind='timerange')"""

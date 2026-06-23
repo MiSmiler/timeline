@@ -43,21 +43,20 @@ class Timepoint:
     - time only: Auto-fill date=today (e.g., 09:00)
     - empty: Boundary marker for Timerange
     - undated: No-date keyword (is_undated=True)
-    - now: Current time keyword (is_now=True)
+    - now: Current time keyword (resolved to concrete date/time)
     """
 
     date: str | None = None  # YYYY-MM-DD or None
     time: str | None = None  # HH:MM or None
     is_undated: bool = False  # True for "undated" keyword
-    is_now: bool = False  # True for "now" keyword
 
     def has_time_component(self) -> bool:
         """Check if this timepoint has time (not date-only).
 
         Returns:
-            True if time is set or is_now is True.
+            True if time is set.
         """
-        return self.time is not None or self.is_now
+        return self.time is not None
 
     def to_datetime(self, now: datetime | None = None) -> datetime | date | None:
         """Convert to concrete datetime/date.
@@ -73,11 +72,8 @@ class Timepoint:
         if now is None:
             now = datetime.now()
 
-        if self.is_undated or (self.date is None and self.time is None and not self.is_now):
+        if self.is_undated or (self.date is None and self.time is None):
             return None
-
-        if self.is_now:
-            return now
 
         if self.date is None:
             # Time only - auto-filled to today
@@ -120,7 +116,7 @@ class Timerange:
             now = datetime.now()
 
         # Expand left boundary
-        if self.left.date is None and self.left.time is None and not self.left.is_now:
+        if self.left.date is None and self.left.time is None:
             # Empty left -> no lower bound
             start = None
         elif self.left.is_undated:
@@ -128,8 +124,6 @@ class Timerange:
             raise TimelineValidationError(
                 "Timerange cannot include 'undated' keyword. Use --at undated to filter undated items."
             )
-        elif self.left.is_now:
-            start = now
         else:
             # Has date or time
             if self.left.date is None:
@@ -147,15 +141,13 @@ class Timerange:
             start = datetime.combine(left_date, left_time)
 
         # Expand right boundary
-        if self.right.date is None and self.right.time is None and not self.right.is_now:
+        if self.right.date is None and self.right.time is None:
             # Empty right -> no upper bound
             end = None
         elif self.right.is_undated:
             raise TimelineValidationError(
                 "Timerange cannot include 'undated' keyword. Use --at undated to filter undated items."
             )
-        elif self.right.is_now:
-            end = now
         else:
             # Has date or time
             if self.right.date is None:
@@ -246,7 +238,7 @@ def parse_timepoint(value: str, now: datetime | None = None) -> Timepoint:
         return Timepoint(date=None, time=None, is_undated=True)
 
     if value == "now":
-        return Timepoint(date=now.date().isoformat(), time=now.strftime("%H:%M"), is_now=True)
+        return Timepoint(date=now.date().isoformat(), time=now.strftime("%H:%M"))
 
     if value == "":
         return Timepoint(date=None, time=None)  # Empty boundary marker
@@ -457,8 +449,6 @@ def _format_timepoint(tp: Timepoint) -> str:
     """Format timepoint for display in error messages."""
     if tp.is_undated:
         return "undated"
-    if tp.is_now:
-        return "now"
     if tp.date is None and tp.time is None:
         return "(empty)"
     if tp.date and tp.time:
@@ -491,8 +481,8 @@ def normalize_date_string(value: str) -> str:
     if value == "now":
         raise TimelineValidationError("'--date' does not support 'now'. Use 'today' instead.")
 
-    # Special case: undated items (? or 0000-00-00)
-    if value == "?" or value == "0000-00-00":
+    # Special case: undated items (0000-00-00)
+    if value == "0000-00-00":
         return "0000-00-00"
 
     if value == "today":

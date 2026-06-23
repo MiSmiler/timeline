@@ -51,9 +51,6 @@ def handle_event_add(args) -> None:
     dt = tp.to_datetime()
     if dt is None:
         raise TimelineValidationError("Event must have a valid datetime.")
-    # Check if it's a datetime (has time) vs date only
-    if isinstance(dt, date) and not isinstance(dt, datetime):
-        raise TimelineValidationError("Event must have a time component.")
 
     # Validate: Event cannot be in future (check using current time)
     now = datetime.now()

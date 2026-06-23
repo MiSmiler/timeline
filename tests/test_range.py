@@ -237,12 +237,9 @@ class TestAtParameterForEventList:
             today = date.today()
             yesterday = today - timedelta(days=1)
             run_cli(["init"], cwd=Path(tmpdir))
-            # Use T separator for add
-            run_cli(["event", "add", "today meeting", "--at", f"{today}T10:00"], cwd=Path(tmpdir))
-            run_cli(
-                ["event", "add", "yesterday meeting", "--at", f"{yesterday}T14:00"],
-                cwd=Path(tmpdir),
-            )
+            # Use 'now' to ensure event is added to today (current time)
+            run_cli(["event", "add", "today meeting", "--at", "now"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "yesterday meeting", "--at", f"{yesterday}T14:00"], cwd=Path(tmpdir))
 
             result = run_cli(["event", "list", "--at", "today"], cwd=Path(tmpdir))
             assert result.returncode == 0
