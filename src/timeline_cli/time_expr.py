@@ -1,8 +1,5 @@
 """TimeExpr parsing module for unified time expression system (Issue #80, ADR-0012).
 
-This module provides the unified TimeExpr abstraction that replaces the previous
---range and --time parameters with a single --at parameter.
-
 Key concepts:
 - Timepoint: A point in time with optional components (date, time)
 - Timerange: A range between two Timepoints (left..right)
@@ -479,7 +476,7 @@ def normalize_date_string(value: str) -> str:
     """
     # Reject 'now' as date parameter
     if value == "now":
-        raise TimelineValidationError("'--date' does not support 'now'. Use 'today' instead.")
+        raise TimelineValidationError("'now' is not a valid date. Use 'today' instead.")
 
     # Special case: undated items (0000-00-00)
     if value == "0000-00-00":

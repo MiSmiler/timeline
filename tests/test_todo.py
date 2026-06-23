@@ -275,14 +275,6 @@ class TestTodoAddOutputNormalization:
             assert "] Added: Someday task (undated)" in result.stdout
 
 
-class TestDateNowRejected:
-    """Tests for Issue #69: 'now' is handled by --at, not --date."""
-
-    # Note: --date no longer exists, so these tests are no longer applicable
-    # --at "now" is now valid and resolves to current datetime
-    # The rejection of --date now was the old behavior before --at
-
-
 class TestTodoList:
     """Tests for todo list command (new API: --at required)."""
 
