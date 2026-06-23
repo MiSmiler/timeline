@@ -26,7 +26,7 @@ class TestDiaryCommand:
             run_cli(["event", "add", "Team meeting", "--at", "-5m"], cwd=Path(tmpdir))
 
             # Add todo for today
-            run_cli(["todo", "add", "Finish report", "--at", f"{today} 14:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Finish report", "--at", f"{today}T14:00"], cwd=Path(tmpdir))
 
             # Add note for today
             run_cli(["note", "add", today, "Good progress today"], cwd=Path(tmpdir))
@@ -60,10 +60,10 @@ class TestDiaryCommand:
             run_cli(["init"], cwd=Path(tmpdir))
 
             # Add event for yesterday
-            run_cli(["event", "add", "Yesterday meeting", "--at", f"{yesterday} 09:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "Yesterday meeting", "--at", f"{yesterday}T09:00"], cwd=Path(tmpdir))
 
             # Add event for today (should not appear)
-            run_cli(["event", "add", "Today meeting", "--at", f"{today} 10:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "Today meeting", "--at", f"{today}T10:00"], cwd=Path(tmpdir))
 
             # Run diary yesterday
             result = run_cli(["diary", "yesterday"], cwd=Path(tmpdir))
@@ -91,7 +91,7 @@ class TestDiaryCommand:
             event_id = result.stdout.split("[")[1].split("]")[0]
 
             # Add todo
-            result = run_cli(["todo", "add", "Task", "--at", f"{today} 14:00"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "Task", "--at", f"{today}T14:00"], cwd=Path(tmpdir))
             todo_id = result.stdout.split("[")[1].split("]")[0]
 
             # Run diary --show-id
@@ -148,7 +148,7 @@ class TestDiaryCommand:
 
             # Add todo with details
             run_cli(
-                ["todo", "add", "Task", "--at", f"{today} 14:00", "--detail", "need to review"],
+                ["todo", "add", "Task", "--at", f"{today}T14:00", "--detail", "need to review"],
                 cwd=Path(tmpdir),
             )
 
@@ -211,7 +211,7 @@ class TestDiaryCommand:
             run_cli(["init"], cwd=Path(tmpdir))
 
             # Add event for specific date (past date to avoid future validation)
-            run_cli(["event", "add", "Event", "--at", "2026-06-15 10:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "Event", "--at", "2026-06-15T10:00"], cwd=Path(tmpdir))
 
             # Run diary for that date
             result = run_cli(["diary", "2026-06-15"], cwd=Path(tmpdir))

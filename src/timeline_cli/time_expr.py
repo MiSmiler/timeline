@@ -12,9 +12,12 @@ Key concepts:
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from timeline_cli.errors import TimelineValidationError
+
+if TYPE_CHECKING:
+    from timeline_cli.models import DailyRecord, Event, Todo
 
 
 @dataclass
@@ -465,3 +468,169 @@ def _format_timepoint(tp: Timepoint) -> str:
     if tp.time:
         return f"(today)T{tp.time}"
     return "(unknown)"
+
+
+# =============================================================================
+# Date utilities (migrated from range_parser.py)
+# =============================================================================
+
+
+def normalize_date_string(value: str) -> str:
+    """Normalize a date string, converting relative keywords to YYYY-MM-DD format.
+
+    Args:
+        value: Date string (may be relative keyword like "yesterday" or "tomorrow")
+
+    Returns:
+        Date string in YYYY-MM-DD format (or special date like "0000-00-00")
+
+    Raises:
+        TimelineValidationError: If format is invalid.
+    """
+    # Reject 'now' as date parameter
+    if value == "now":
+        raise TimelineValidationError("'--date' does not support 'now'. Use 'today' instead.")
+
+    # Special case: undated items (? or 0000-00-00)
+    if value == "?" or value == "0000-00-00":
+        return "0000-00-00"
+
+    if value == "today":
+        return date.today().isoformat()
+    if value == "yesterday":
+        return (date.today() - timedelta(days=1)).isoformat()
+    if value == "tomorrow":
+        return (date.today() + timedelta(days=1)).isoformat()
+
+    # Try to parse as explicit date
+    try:
+        date_obj = date.fromisoformat(value)
+        return date_obj.isoformat()
+    except ValueError:
+        raise TimelineValidationError(
+            f"Invalid date: {value}. Use YYYY-MM-DD format or 'today'/'yesterday'/'tomorrow'."
+        ) from None
+
+
+def is_date_in_range(date_str: str | None, date_range: DateRange) -> bool:
+    """Check if a date string falls within the range.
+
+    Args:
+        date_str: Date string like "2026-06-17" or None for undated
+        date_range: DateRange to check against
+
+    Returns:
+        True if date is in range
+    """
+    # Handle undated items
+    if date_str is None:
+        return date_range.include_undated
+
+    # Handle undated record (0000-00-00)
+    if date_str == "0000-00-00":
+        return date_range.include_undated
+
+    # Parse the date
+    item_date = date.fromisoformat(date_str)
+
+    # Check start bound
+    if date_range.start is not None:
+        if isinstance(date_range.start, datetime):
+            # Compare as datetime - use start of day
+            item_dt = datetime.combine(item_date, time.min)
+            if item_dt < date_range.start:
+                return False
+        else:
+            # Compare as date
+            if item_date < date_range.start:
+                return False
+
+    # Check end bound
+    if date_range.end is not None:
+        if isinstance(date_range.end, datetime):
+            # Compare as datetime - use end of day (23:59:59, no microseconds)
+            # to match our Timerange expansion which uses T23:59
+            item_dt = datetime.combine(item_date, time.max.replace(microsecond=0))
+            if item_dt > date_range.end:
+                return False
+        else:
+            # Compare as date
+            if item_date > date_range.end:
+                return False
+
+    return True
+
+
+def is_datetime_in_range(dt: datetime, date_range: DateRange) -> bool:
+    """Check if a datetime falls within the range.
+
+    Args:
+        dt: datetime object
+        date_range: DateRange to check against
+
+    Returns:
+        True if datetime is in range
+    """
+    # Check start bound
+    if date_range.start is not None:
+        start = date_range.start
+        if isinstance(start, date) and not isinstance(start, datetime):
+            start = datetime.combine(start, time.min)
+        if dt < start:
+            return False
+
+    # Check end bound
+    if date_range.end is not None:
+        end = date_range.end
+        if isinstance(end, date) and not isinstance(end, datetime):
+            end = datetime.combine(end, time.max)
+        if dt > end:
+            return False
+
+    return True
+
+
+def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRange) -> list[tuple[str, "Todo"]]:
+    """Filter todos by date range.
+
+    Args:
+        records: Dictionary of date -> DailyRecord
+        date_range: DateRange to filter by
+
+    Returns:
+        List of (date, todo) tuples that match the range
+    """
+    results = []
+    for date_str, record in records.items():
+        # Check if date is in range
+        if not is_date_in_range(date_str, date_range):
+            continue
+
+        # Include all todos from this date
+        for todo in record.todos:
+            results.append((date_str, todo))
+
+    return results
+
+
+def filter_events_by_range(records: dict[str, "DailyRecord"], date_range: DateRange) -> list[tuple[str, "Event"]]:
+    """Filter events by date range.
+
+    Args:
+        records: Dictionary of date -> DailyRecord
+        date_range: DateRange to filter by
+
+    Returns:
+        List of (date, event) tuples that match the range
+    """
+    results = []
+    for date_str, record in records.items():
+        # Check if date is in range
+        if not is_date_in_range(date_str, date_range):
+            continue
+
+        # Include all events from this date
+        for event in record.events:
+            results.append((date_str, event))
+
+    return results

@@ -57,7 +57,7 @@ class TestTodoEdit:
         """Todo edit --new-at "YYYY-MM-DD HH:MM" updates time (keeps same date)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "task", "--at", "2026-06-16 09:00"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--at", "2026-06-16T09:00"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID
@@ -67,7 +67,7 @@ class TestTodoEdit:
 
             # Use full datetime to keep same date
             result = run_cli(
-                ["todo", "edit", "--id", todo_id, "--new-at", "2026-06-16 14:00"],
+                ["todo", "edit", "--id", todo_id, "--new-at", "2026-06-16T14:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -80,7 +80,7 @@ class TestTodoEdit:
         """Todo edit --new-at outputs: [id] Edited: time: old → new."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "task", "--at", "2026-06-16 09:00"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--at", "2026-06-16T09:00"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID
@@ -90,7 +90,7 @@ class TestTodoEdit:
 
             # Use full datetime to keep same date
             result = run_cli(
-                ["todo", "edit", "--id", todo_id, "--new-at", "2026-06-16 14:00"],
+                ["todo", "edit", "--id", todo_id, "--new-at", "2026-06-16T14:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -196,7 +196,7 @@ class TestTodoEdit:
         """Todo edit --new-at "2026-06-16" (date only) clears time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "task", "--at", "2026-06-16 09:00"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--at", "2026-06-16T09:00"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID
@@ -304,7 +304,7 @@ class TestTodoEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "old task", "--at", "2026-06-16 09:00"],
+                ["todo", "add", "old task", "--at", "2026-06-16T09:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -385,7 +385,7 @@ class TestTodoEditNewAtNow:
         """--new-at "now" works when result is today."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "task", "--at", "today 09:00"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--at", "todayT09:00"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID

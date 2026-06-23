@@ -1,19 +1,18 @@
 """Tests for TimeExpr parsing module (Issue #80)."""
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 
+from timeline_cli.errors import TimelineValidationError
 from timeline_cli.time_expr import (
     DateRange,
     TimeExpr,
     Timepoint,
-    Timerange,
     parse_timepoint,
     parse_timerange,
 )
-from timeline_cli.errors import TimelineValidationError
 
 
 class TestTimepointParsing:
@@ -449,7 +448,6 @@ class TestDateRangeDataclass:
 
     def test_daterange_empty_bounds(self):
         """DateRange with None bounds represents unbounded range."""
-        from datetime import date
 
         dr = DateRange(start=None, end=None)
         assert dr.start is None

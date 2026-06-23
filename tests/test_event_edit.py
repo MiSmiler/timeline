@@ -15,7 +15,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -40,7 +40,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "old meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "old meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -63,7 +63,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -74,7 +74,7 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-at", "2026-06-15 15:00"],
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-15T15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -88,7 +88,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -99,7 +99,7 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-at", "2026-06-15 15:00"],
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-15T15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -111,7 +111,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 10:00"],
+                ["event", "add", "meeting", "--at", "2026-06-15T10:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -122,7 +122,7 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-at", "2026-06-16 10:00"],
+                ["event", "edit", "--id", event_id, "--new-at", "2026-06-16T10:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -140,7 +140,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 10:00"],
+                ["event", "add", "meeting", "--at", "2026-06-15T10:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -207,7 +207,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -232,7 +232,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -255,7 +255,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30", "--detail", "old"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30", "--detail", "old"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -281,7 +281,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30", "--detail", "old"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30", "--detail", "old"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -305,7 +305,7 @@ class TestEventEdit:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "old meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "old meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -316,7 +316,7 @@ class TestEventEdit:
             event_id = match.group(1)
 
             result = run_cli(
-                ["event", "edit", "--id", event_id, "--new-text", "new meeting", "--new-at", "2026-06-15 15:00"],
+                ["event", "edit", "--id", event_id, "--new-text", "new meeting", "--new-at", "2026-06-15T15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -345,7 +345,7 @@ class TestEventDelete:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -370,7 +370,7 @@ class TestEventDelete:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "old meeting", "--at", "2026-06-15 14:30"],
+                ["event", "add", "old meeting", "--at", "2026-06-15T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

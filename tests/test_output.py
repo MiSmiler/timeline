@@ -37,7 +37,7 @@ class TestMarkdownOutput:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["todo", "add", "Meeting", "--at", "2026-06-18 14:30"],
+                ["todo", "add", "Meeting", "--at", "2026-06-18T14:30"],
                 cwd=Path(tmpdir),
             )
 
@@ -144,13 +144,13 @@ class TestMarkdownOutput:
     def test_todo_list_markdown_undated(self):
         """Todo list markdown should show undated todos under # Undated header."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Setup - create undated todo (no time)
+            # Setup - create undated todo
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "Sometime task", "--at", "0000-00-00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "Sometime task", "--at", "undated"], cwd=Path(tmpdir))
 
-            # List with --at ? (undated items)
+            # List with --at undated
             result = run_cli(
-                ["todo", "list", "--at", "?"],
+                ["todo", "list", "--at", "undated"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -210,7 +210,7 @@ class TestMarkdownOutput:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "Meeting", "--at", "2026-06-18 10:00"],
+                ["event", "add", "Meeting", "--at", "2026-06-18T10:00"],
                 cwd=Path(tmpdir),
             )
 
@@ -288,11 +288,11 @@ class TestContainsParameter:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "team meeting", "--at", "2026-06-16 10:00"],
+                ["event", "add", "team meeting", "--at", "2026-06-16T10:00"],
                 cwd=Path(tmpdir),
             )
             run_cli(
-                ["event", "add", "lunch", "--at", "2026-06-16 14:00"],
+                ["event", "add", "lunch", "--at", "2026-06-16T14:00"],
                 cwd=Path(tmpdir),
             )
 

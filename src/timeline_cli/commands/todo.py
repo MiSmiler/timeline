@@ -6,7 +6,6 @@ from datetime import datetime
 from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Todo
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_todos
-from timeline_cli.range_parser import filter_todos_by_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -16,7 +15,7 @@ from timeline_cli.storage import (
     read_timeline,
     write_timeline,
 )
-from timeline_cli.time_expr import DateRange, TimeExpr
+from timeline_cli.time_expr import DateRange, TimeExpr, filter_todos_by_range
 
 
 def handle_todo_add(args) -> None:

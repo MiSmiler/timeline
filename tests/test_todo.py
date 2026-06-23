@@ -39,7 +39,7 @@ class TestTodoAdd:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "meeting", "--at", "2026-06-16 14:30"],
+                ["todo", "add", "meeting", "--at", "2026-06-16T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -102,7 +102,7 @@ class TestTodoAdd:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "Review PR", "--at", "2026-06-18 15:00"],
+                ["todo", "add", "Review PR", "--at", "2026-06-18T15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -132,7 +132,7 @@ class TestTodoAddAtParameter:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "Task", "--at", "2026-06-22 15:00"],
+                ["todo", "add", "Task", "--at", "2026-06-22T15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -162,11 +162,11 @@ class TestTodoAddAtParameter:
             assert re.search(r"\[t[a-z0-9]+\] Added: Task \(" + today_str + r" no-time\)", result.stdout)
 
     def test_todo_add_at_relative_date_with_time(self):
-        """--at "today 15:00" resolves date and time."""
+        """--at "todayT15:00" resolves date and time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["todo", "add", "Task", "--at", "today 15:00"],
+                ["todo", "add", "Task", "--at", "todayT15:00"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -311,13 +311,14 @@ class TestTodoList:
             assert "task B" not in result.stdout
 
     def test_todo_list_filter_by_time(self):
-        """Todo list --at filters by time."""
+        """Todo list --at filters by exact time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "morning", "--at", "2026-06-16 09:00"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "afternoon", "--at", "2026-06-16 14:30"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "morning", "--at", "2026-06-16T09:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "afternoon", "--at", "2026-06-16T14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--at", "2026-06-16", "--at", "14:30"], cwd=Path(tmpdir))
+            # Filter by exact time match
+            result = run_cli(["todo", "list", "--at", "2026-06-16T14:30"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "afternoon" in result.stdout
             assert "morning" not in result.stdout

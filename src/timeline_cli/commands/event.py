@@ -6,7 +6,6 @@ from datetime import date, datetime
 from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Event
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_events
-from timeline_cli.range_parser import filter_events_by_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -16,7 +15,7 @@ from timeline_cli.storage import (
     read_timeline,
     write_timeline,
 )
-from timeline_cli.time_expr import DateRange, TimeExpr
+from timeline_cli.time_expr import DateRange, TimeExpr, filter_events_by_range
 
 
 def handle_event_add(args) -> None:
@@ -202,7 +201,7 @@ def handle_event_edit(args) -> None:
 
         # Get concrete date/time
         dt = tp.to_datetime()
-        if dt is None or isinstance(dt, date):
+        if dt is None or (type(dt) is date):
             raise TimelineValidationError("Event must have a valid datetime.")
 
         # Validate: Event cannot be in future
