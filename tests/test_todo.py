@@ -284,7 +284,7 @@ class TestDateNowRejected:
 
 
 class TestTodoList:
-    """Tests for todo list command (new API: --range required)."""
+    """Tests for todo list command (new API: --at required)."""
 
     def test_todo_list_shows_all_pending(self):
         """Tracer bullet: timeline-cli todo list shows pending todos."""
@@ -293,31 +293,31 @@ class TestTodoList:
             run_cli(["todo", "add", "task 1", "--at", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task 2", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--range", ".."], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", ".."], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "task 1" in result.stdout
             assert "task 2" in result.stdout
 
     def test_todo_list_filter_by_date(self):
-        """Todo list --range filters by date."""
+        """Todo list --at filters by date."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task A", "--at", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task B", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "task A" in result.stdout
             assert "task B" not in result.stdout
 
     def test_todo_list_filter_by_time(self):
-        """Todo list --time filters by time."""
+        """Todo list --at filters by time."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "morning", "--at", "2026-06-16 09:00"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "afternoon", "--at", "2026-06-16 14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--time", "14:30"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--at", "14:30"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "afternoon" in result.stdout
             assert "morning" not in result.stdout
@@ -336,7 +336,7 @@ class TestTodoList:
 
             run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--status", "completed"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--status", "completed"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "pending task" in result.stdout
 
@@ -346,7 +346,7 @@ class TestTodoList:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Should be JSONlines format - each line is valid JSON
@@ -364,7 +364,7 @@ class TestTodoList:
             run_cli(["todo", "add", "write docs", "--at", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "review code", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--contains", "write"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--contains", "write"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "unit tests" in result.stdout
             assert "docs" in result.stdout

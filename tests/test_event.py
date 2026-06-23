@@ -236,7 +236,7 @@ class TestEventAddWithDetail:
 
 
 class TestEventList:
-    """Tests for event list command (new API: --range required)."""
+    """Tests for event list command (new API: --at required)."""
 
     def test_event_list_shows_events(self):
         """Tracer bullet: timeline-cli event list shows events."""
@@ -245,7 +245,7 @@ class TestEventList:
             run_cli(["event", "add", "breakfast", "--at", "2026-06-16 09:00"], cwd=Path(tmpdir))
             run_cli(["event", "add", "lunch", "--at", "2026-06-16 12:00"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "09:00" in result.stdout
             assert "breakfast" in result.stdout
@@ -258,7 +258,7 @@ class TestEventList:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["event", "add", "meeting", "--at", "2026-06-16 14:30"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--at", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Should be JSONlines format - each line is valid JSON
@@ -276,7 +276,7 @@ class TestEventList:
             run_cli(["event", "add", "team meeting", "--at", "2026-06-16 10:00"], cwd=Path(tmpdir))
             run_cli(["event", "add", "lunch", "--at", "2026-06-16 14:00"], cwd=Path(tmpdir))
 
-            result = run_cli(["event", "list", "--range", "2026-06-16", "--contains", "meeting"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--at", "2026-06-16", "--contains", "meeting"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "team meeting" in result.stdout
             assert "lunch" not in result.stdout

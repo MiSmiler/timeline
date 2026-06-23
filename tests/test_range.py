@@ -364,3 +364,81 @@ class TestUndatedKeyword:
             result = run_cli(["event", "add", "meeting", "--at", "undated"], cwd=Path(tmpdir))
             assert result.returncode != 0
             assert "undated" in result.stderr.lower() or "time" in result.stderr.lower()
+
+
+class TestNoTimeParameter:
+    """Tests for --no-time parameter (Issue #82)."""
+
+    def test_todo_list_no_time_filters_untimed(self):
+        """Todo list --at today --no-time shows only untimed todos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "clocked task", "--at", "todayT09:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "untimed task", "--at", "today"], cwd=Path(tmpdir))
+
+            result = run_cli(["todo", "list", "--at", "today", "--no-time"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "untimed task" in result.stdout
+            assert "clocked task" not in result.stdout
+
+    def test_todo_list_no_time_default_range(self):
+        """Todo list --no-time (no --at) defaults to range .."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "untimed one", "--at", "2026-06-15"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "untimed two", "--at", "2026-06-20"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "clocked", "--at", "todayT09:00"], cwd=Path(tmpdir))
+
+            result = run_cli(["todo", "list", "--no-time"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "untimed one" in result.stdout
+            assert "untimed two" in result.stdout
+            assert "clocked" not in result.stdout
+
+    def test_todo_list_no_time_with_timepoint_rejected(self):
+        """Todo list --at 2026-06-23T09:00 --no-time rejected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-23T09:00", "--no-time"], cwd=Path(tmpdir))
+            assert result.returncode != 0
+            assert "timepoint" in result.stderr.lower() or "exact time" in result.stderr.lower()
+
+    def test_todo_list_no_time_with_date_only_allowed(self):
+        """Todo list --at today --no-time allowed (date-only)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "untimed", "--at", "today"], cwd=Path(tmpdir))
+
+            result = run_cli(["todo", "list", "--at", "today", "--no-time"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "untimed" in result.stdout
+
+    def test_todo_list_no_time_with_range_allowed(self):
+        """Todo list --at today.. --no-time allowed (timerange)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "untimed", "--at", "today"], cwd=Path(tmpdir))
+
+            result = run_cli(["todo", "list", "--at", "today..", "--no-time"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "untimed" in result.stdout
+
+    def test_todo_list_no_time_with_status_combined(self):
+        """Todo list --no-time --status pending combines filters."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "untimed pending", "--at", "today"], cwd=Path(tmpdir))
+            # Complete one todo to test status filter
+            result_add = run_cli(["todo", "add", "untimed done", "--at", "yesterday"], cwd=Path(tmpdir))
+            # Get ID and complete it
+            import re
+
+            match = re.search(r"\[t([a-z0-9]+)\]", result_add.stdout)
+            if match:
+                todo_id = "t" + match.group(1)
+                run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
+
+            result = run_cli(["todo", "list", "--no-time", "--status", "pending"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "untimed pending" in result.stdout
+            assert "untimed done" not in result.stdout

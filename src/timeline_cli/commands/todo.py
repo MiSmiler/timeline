@@ -86,11 +86,10 @@ def handle_todo_add(args) -> None:
 
 
 def handle_todo_list(args) -> None:
-    """Handle todo list command (Issue #81: --at parameter, parameter requirement)."""
+    """Handle todo list command (Issue #81, #82: --at, --no-time, parameter requirement)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
     # Parameter requirement: at least one of --at, --no-time, --status, --contains
-    # Note: --no-time will be added in Phase 3 (Issue #82)
     has_params = (
         args.at is not None
         or getattr(args, "no_time", False)
@@ -151,6 +150,19 @@ def handle_todo_list(args) -> None:
         # No --at: default to all dates (..)
         date_range = DateRange()
         todos_with_dates = filter_todos_by_range(timeline.records, date_range)
+
+    # Apply --no-time filter (Issue #82)
+    if getattr(args, "no_time", False):
+        # Validate: --no-time cannot be combined with timepoint (exact time match)
+        if args.at:
+            time_expr = TimeExpr.parse(args.at)
+            if time_expr.kind == "timepoint" and time_expr.timepoint.time is not None:
+                raise TimelineValidationError(
+                    "--no-time cannot be used with exact time match (--at with time).\n"
+                    "Use '--at today' (date-only) or '--at today..' (timerange) instead."
+                )
+        # Filter todos without time component
+        todos_with_dates = [(d, t) for d, t in todos_with_dates if t.time is None]
 
     # Apply additional filters
     if args.status:

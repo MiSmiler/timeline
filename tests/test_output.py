@@ -23,7 +23,7 @@ class TestMarkdownOutput:
 
             # List without --output flag (should be markdown by default)
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18"],
+                ["todo", "list", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -43,7 +43,7 @@ class TestMarkdownOutput:
 
             # List
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18"],
+                ["todo", "list", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -60,7 +60,7 @@ class TestMarkdownOutput:
 
             # List with --json flag
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18", "--json"],
+                ["todo", "list", "--at", "2026-06-18", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -85,7 +85,7 @@ class TestMarkdownOutput:
 
             # List
             result = run_cli(
-                ["todo", "list", "--range", ".."],
+                ["todo", "list", "--at", ".."],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -108,7 +108,7 @@ class TestMarkdownOutput:
 
             # List
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18"],
+                ["todo", "list", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -132,7 +132,7 @@ class TestMarkdownOutput:
 
             # List with --show-id
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18", "--show-id"],
+                ["todo", "list", "--at", "2026-06-18", "--show-id"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -148,9 +148,9 @@ class TestMarkdownOutput:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "Sometime task", "--at", "0000-00-00"], cwd=Path(tmpdir))
 
-            # List with --range ? (undated items)
+            # List with --at ? (undated items)
             result = run_cli(
-                ["todo", "list", "--range", "?"],
+                ["todo", "list", "--at", "?"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -165,7 +165,7 @@ class TestMarkdownOutput:
             run_cli(["todo", "add", "Task 2", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18", "--json"],
+                ["todo", "list", "--at", "2026-06-18", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -183,7 +183,7 @@ class TestMarkdownOutput:
             run_cli(["init"], cwd=Path(tmpdir))
 
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18", "--json"],
+                ["todo", "list", "--at", "2026-06-18", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -197,7 +197,7 @@ class TestMarkdownOutput:
             run_cli(["todo", "add", "买牛奶", "--at", "2026-06-18"], cwd=Path(tmpdir))
 
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18", "--json"],
+                ["todo", "list", "--at", "2026-06-18", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -215,7 +215,7 @@ class TestMarkdownOutput:
             )
 
             result = run_cli(
-                ["event", "list", "--range", "2026-06-18", "--json"],
+                ["event", "list", "--at", "2026-06-18", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -235,7 +235,7 @@ class TestMarkdownOutput:
             run_cli(["init"], cwd=Path(tmpdir))
 
             result = run_cli(
-                ["event", "list", "--range", "2026-06-18", "--json"],
+                ["event", "list", "--at", "2026-06-18", "--json"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -257,7 +257,7 @@ class TestContainsParameter:
 
             # List with --contains buy (new API)
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-16", "--contains", "buy"],
+                ["todo", "list", "--at", "2026-06-16", "--contains", "buy"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -266,16 +266,16 @@ class TestContainsParameter:
             assert "mom" not in result.stdout
 
     def test_todo_list_contains_with_range(self):
-        """Todo list --contains should work with --range."""
+        """Todo list --contains should work with --at."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "meeting with team", "--at", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "call team lead", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
-            # List with --range and --contains (new API)
+            # List with --at and --contains (new API)
             result = run_cli(
-                ["todo", "list", "--range", "..", "--contains", "team"],
+                ["todo", "list", "--at", "..", "--contains", "team"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -298,7 +298,7 @@ class TestContainsParameter:
 
             # List with --contains meeting
             result = run_cli(
-                ["event", "list", "--range", "2026-06-16", "--contains", "meeting"],
+                ["event", "list", "--at", "2026-06-16", "--contains", "meeting"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -319,7 +319,7 @@ class TestContainsParameter:
 
             # List
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18"],
+                ["todo", "list", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -339,7 +339,7 @@ class TestContainsParameter:
 
             # List
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18"],
+                ["todo", "list", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -354,7 +354,7 @@ class TestContainsParameter:
 
             # List
             result = run_cli(
-                ["todo", "list", "--range", "2026-06-18"],
+                ["todo", "list", "--at", "2026-06-18"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0

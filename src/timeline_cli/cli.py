@@ -168,11 +168,15 @@ def _setup_todo_commands(subparsers: argparse._SubParsersAction) -> None:
         required=False,
         help="Time expression (e.g., 'today', 'yesterday..today', '..', 'undated', 'todayT09:00')",
     )
+    list_parser.add_argument(
+        "--no-time",
+        action="store_true",
+        help="Filter todos without time component (day-long or undated todos)",
+    )
     list_parser.add_argument("--json", action="store_true", help="Output as JSON")
     list_parser.add_argument("--show-id", action="store_true", help="Show todo IDs in output")
     list_parser.add_argument("--contains", help="Filter by text substring")
     list_parser.add_argument("--status", choices=["pending", "completed", "abandoned"], help="Filter by status")
-    # Note: --no-time will be added in Phase 3 (Issue #82)
 
     # todo complete (Issue #45: use --id)
     complete_parser = subparsers.add_parser("complete", help="Complete a todo")
