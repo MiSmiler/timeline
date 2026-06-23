@@ -1,15 +1,12 @@
 """Todo command implementations."""
 
 import sys
+from datetime import datetime
 
 from timeline_cli.errors import TimelineValidationError
 from timeline_cli.models import Todo
 from timeline_cli.output_formatter import OutputFormat, filter_by_contains, format_todos
-from timeline_cli.range_parser import (
-    filter_todos_by_range,
-    parse_at_parameter,
-    parse_range,
-)
+from timeline_cli.range_parser import filter_todos_by_range
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     collect_existing_ids,
@@ -19,18 +16,43 @@ from timeline_cli.storage import (
     read_timeline,
     write_timeline,
 )
+from timeline_cli.time_expr import DateRange, TimeExpr
 
 
 def handle_todo_add(args) -> None:
-    """Handle todo add command (Issue #70: TEXT --at AT)."""
+    """Handle todo add command (Issue #83: TimeExpr for --at)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    # Parse --at parameter
-    at_param = parse_at_parameter(args.at)
+    # Parse --at parameter using TimeExpr
+    time_expr = TimeExpr.parse(args.at)
+
+    # Reject timerange for add (only timepoint allowed)
+    if time_expr.kind == "timerange":
+        raise TimelineValidationError(
+            "Cannot use timerange for --at in add command. "
+            "Use a timepoint like 'todayT09:00', 'today', 'undated', or 'now'."
+        )
+
+    tp = time_expr.timepoint
 
     # Determine normalized date and time
-    normalized_date = at_param.date if at_param.date else "0000-00-00"
-    normalized_time = at_param.time
+    if tp.is_undated:
+        normalized_date = "0000-00-00"
+        normalized_time = None
+    else:
+        # Get concrete date/time from timepoint
+        dt = tp.to_datetime()
+        if dt is None:
+            # Empty timepoint - treat as undated
+            normalized_date = "0000-00-00"
+            normalized_time = None
+        elif isinstance(dt, datetime):
+            normalized_date = dt.date().isoformat()
+            normalized_time = dt.strftime("%H:%M")
+        else:
+            # Date only
+            normalized_date = dt.isoformat()
+            normalized_time = None
 
     record = get_or_create_daily_record(timeline, normalized_date)
 
@@ -54,7 +76,7 @@ def handle_todo_add(args) -> None:
     # Write back
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
-    # Git-style output with normalized date and time (Issue #68, #70)
+    # Git-style output with normalized date and time
     if normalized_date == "0000-00-00":
         print(f"[{todo_id}] Added: {args.text} (undated)")
     elif normalized_time:
@@ -64,16 +86,73 @@ def handle_todo_add(args) -> None:
 
 
 def handle_todo_list(args) -> None:
-    """Handle todo list command (Issue #45: --range required)."""
+    """Handle todo list command (Issue #81: --at parameter, parameter requirement)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
-    # Use --range (now required)
-    date_range = parse_range(args.range)
-    todos_with_dates = filter_todos_by_range(timeline.records, date_range)
+    # Parameter requirement: at least one of --at, --no-time, --status, --contains
+    # Note: --no-time will be added in Phase 3 (Issue #82)
+    has_params = (
+        args.at is not None
+        or getattr(args, "no_time", False)
+        or args.status is not None
+        or (hasattr(args, "contains") and args.contains is not None)
+    )
+
+    if not has_params:
+        raise TimelineValidationError(
+            "At least one parameter required: --at, --no-time, --status, or --contains.\n"
+            "This prevents accidental output of all todos.\n"
+            "Use '--at ..' to list all todos explicitly."
+        )
+
+    # Determine date range from --at parameter
+    todos_with_dates = []
+
+    if args.at:
+        time_expr = TimeExpr.parse(args.at)
+
+        # Handle undated as special case (only undated items, no dated)
+        if time_expr.kind == "timepoint" and time_expr.timepoint.is_undated:
+            # For undated: filter only items from 0000-00-00 record
+            for date_str, record in timeline.records.items():
+                if date_str == "0000-00-00":
+                    for todo in record.todos:
+                        todos_with_dates.append((date_str, todo))
+        elif time_expr.kind == "timerange":
+            date_range = time_expr.timerange.expand_for_query()
+            todos_with_dates = filter_todos_by_range(timeline.records, date_range)
+        else:
+            # Timepoint: expand to full day range for list commands
+            # (date-only -> dateT00:00..dateT23:59, time-only -> exact match today)
+            tp = time_expr.timepoint
+            if tp.time is None:
+                # Date-only: expand to full day
+                from datetime import time
+
+                date_obj = tp.to_datetime()
+                if date_obj:
+                    date_range = DateRange(
+                        start=datetime.combine(date_obj, time.min),
+                        end=datetime.combine(date_obj, time.max.replace(microsecond=0)),
+                    )
+                else:
+                    date_range = DateRange()  # Empty timepoint -> all (shouldn't happen)
+                todos_with_dates = filter_todos_by_range(timeline.records, date_range)
+            else:
+                # Has time: exact match - filter todos with exact time on that date
+                dt = tp.to_datetime()
+                target_date = dt.date().isoformat() if isinstance(dt, datetime) else dt.isoformat()
+                target_time = dt.strftime("%H:%M") if isinstance(dt, datetime) else None
+                if target_date in timeline.records:
+                    for todo in timeline.records[target_date].todos:
+                        if todo.time == target_time:
+                            todos_with_dates.append((target_date, todo))
+    else:
+        # No --at: default to all dates (..)
+        date_range = DateRange()
+        todos_with_dates = filter_todos_by_range(timeline.records, date_range)
 
     # Apply additional filters
-    if args.time:
-        todos_with_dates = [(d, t) for d, t in todos_with_dates if t.time == args.time]
     if args.status:
         todos_with_dates = [(d, t) for d, t in todos_with_dates if t.status == args.status]
     if hasattr(args, "contains") and args.contains:
@@ -130,7 +209,7 @@ def handle_todo_abandon(args) -> None:
 
 
 def handle_todo_edit(args) -> None:
-    """Handle todo edit command (Issue #70: use --id, --new-at)."""
+    """Handle todo edit command (Issue #83: TimeExpr for --new-at)."""
     timeline = read_timeline(DEFAULT_STORAGE_FILE)
 
     result = find_todo_by_id_in_timeline(timeline, args.id)
@@ -143,12 +222,34 @@ def handle_todo_edit(args) -> None:
     # Track changes for diff-style output
     changes = []
 
-    # Handle --new-at parameter (Issue #70)
-    # Note: args.new_at can be "" (empty string) for undated conversion
+    # Handle --new-at parameter (Issue #83)
     if args.new_at is not None:
-        at_param = parse_at_parameter(args.new_at)
-        new_date = at_param.date if at_param.date else "0000-00-00"
-        new_time = at_param.time
+        time_expr = TimeExpr.parse(args.new_at)
+
+        # Reject timerange for edit (only timepoint allowed)
+        if time_expr.kind == "timerange":
+            raise TimelineValidationError(
+                "Cannot use timerange for --new-at in edit command. "
+                "Use a timepoint like 'todayT09:00', 'today', 'undated', or 'now'."
+            )
+
+        tp = time_expr.timepoint
+
+        # Determine normalized date and time
+        if tp.is_undated:
+            new_date = "0000-00-00"
+            new_time = None
+        else:
+            dt = tp.to_datetime()
+            if dt is None:
+                new_date = "0000-00-00"
+                new_time = None
+            elif isinstance(dt, datetime):
+                new_date = dt.date().isoformat()
+                new_time = dt.strftime("%H:%M")
+            else:
+                new_date = dt.isoformat()
+                new_time = None
 
         # Track date/time changes
         old_time_str = todo.time or "(no time)"

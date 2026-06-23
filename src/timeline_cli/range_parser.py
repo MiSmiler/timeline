@@ -406,7 +406,7 @@ def is_date_in_range(date_str: str, date_range: DateRange) -> bool:
     # Check start bound
     if date_range.start is not None:
         if isinstance(date_range.start, datetime):
-            # Compare as datetime
+            # Compare as datetime - use start of day
             item_dt = datetime.combine(item_date, time.min)
             if item_dt < date_range.start:
                 return False
@@ -418,8 +418,9 @@ def is_date_in_range(date_str: str, date_range: DateRange) -> bool:
     # Check end bound
     if date_range.end is not None:
         if isinstance(date_range.end, datetime):
-            # Compare as datetime
-            item_dt = datetime.combine(item_date, time.max)
+            # Compare as datetime - use end of day (23:59:59, no microseconds)
+            # to match our Timerange expansion which uses T23:59
+            item_dt = datetime.combine(item_date, time.max.replace(microsecond=0))
             if item_dt > date_range.end:
                 return False
         else:
