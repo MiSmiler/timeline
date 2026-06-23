@@ -17,8 +17,8 @@ uv pip install -e .
 
 ```bash
 timeline-cli --help
-timeline-cli todo add 2026-06-17 "完成报告"
-timeline-cli todo list 2026-06-17
+timeline-cli todo add "完成任务" --at today
+timeline-cli todo list --at today
 ```
 
 ## 开发

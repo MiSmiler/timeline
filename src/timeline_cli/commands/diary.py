@@ -1,8 +1,8 @@
 """Diary command implementation - complete daily view."""
 
 from timeline_cli.output_formatter import _format_event_item, _format_todo_item
-from timeline_cli.range_parser import normalize_date_string
 from timeline_cli.storage import DEFAULT_STORAGE_FILE, read_timeline
+from timeline_cli.time_expr import normalize_date_string
 
 
 def handle_diary(args) -> None:

@@ -43,7 +43,7 @@ class TestIDGeneration:
 
             # Add an event
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-16 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-16T14:30"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
@@ -100,7 +100,7 @@ class TestIDDisplay:
             todo_id = result.stdout.split("[")[1].split("]")[0]
 
             # List todos with --show-id
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--show-id"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--show-id"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify ID in output (format: (t7b3k))
@@ -112,14 +112,14 @@ class TestIDDisplay:
             # Setup
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-16 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-16T14:30"],
                 cwd=Path(tmpdir),
             )
             # Extract ID from output: "Added event [e4x1m]: meeting at 14:30"
             event_id = result.stdout.split("[")[1].split("]")[0]
 
             # List events with --show-id
-            result = run_cli(["event", "list", "--range", "2026-06-16", "--show-id"], cwd=Path(tmpdir))
+            result = run_cli(["event", "list", "--at", "2026-06-16", "--show-id"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Verify ID in output (format: (e4x1m))
@@ -133,7 +133,7 @@ class TestIDDisplay:
             run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             # List todos with --json
-            result = run_cli(["todo", "list", "--range", "2026-06-16", "--json"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--json"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Parse JSONlines output - first line is a JSON object
@@ -175,7 +175,7 @@ class TestBackwardCompatibility:
             storage_file.write_text("\n".join(content) + "\n")
 
             # Should be able to list (new API: --range required)
-            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "legacy task" in result.stdout
 
@@ -207,7 +207,7 @@ class TestBackwardCompatibility:
             storage_file.write_text("\n".join(content) + "\n")
 
             # List should work (new API)
-            result = run_cli(["todo", "list", "--range", "2026-06-16"], cwd=Path(tmpdir))
+            result = run_cli(["todo", "list", "--at", "2026-06-16"], cwd=Path(tmpdir))
             assert result.returncode == 0
             assert "old task" in result.stdout
 
@@ -230,7 +230,7 @@ class TestIDFormat:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(
-                ["event", "add", "meeting", "--at", "2026-06-16 14:30"],
+                ["event", "add", "meeting", "--at", "2026-06-16T14:30"],
                 cwd=Path(tmpdir),
             )
 

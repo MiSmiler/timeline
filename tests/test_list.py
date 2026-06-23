@@ -16,11 +16,11 @@ class TestListCommand:
             # Add events, todos, and notes to create test data
             run_cli(["todo", "add", "task1", "--at", "2026-06-17"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task2", "--at", "2026-06-17"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "meeting", "--at", "2026-06-17 10:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "meeting", "--at", "2026-06-17T10:00"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-17", "daily note"], cwd=Path(tmpdir))
 
             run_cli(["todo", "add", "task3", "--at", "2026-06-18"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "call", "--at", "2026-06-18 14:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "call", "--at", "2026-06-18T14:00"], cwd=Path(tmpdir))
 
             result = run_cli(["list"], cwd=Path(tmpdir))
             assert result.returncode == 0
@@ -64,17 +64,17 @@ class TestListCommand:
             run_cli(["todo", "add", "t3", "--at", "2026-06-17"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "t4", "--at", "2026-06-17"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "t5", "--at", "2026-06-17"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "e1", "--at", "2026-06-17 09:00"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "e2", "--at", "2026-06-17 10:00"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "e3", "--at", "2026-06-17 11:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "e1", "--at", "2026-06-17T09:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "e2", "--at", "2026-06-17T10:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "e3", "--at", "2026-06-17T11:00"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-17", "note1"], cwd=Path(tmpdir))
 
             # Date 2: 2 events, 3 todos, 1 note
             run_cli(["todo", "add", "t6", "--at", "2026-06-18"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "t7", "--at", "2026-06-18"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "t8", "--at", "2026-06-18"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "e4", "--at", "2026-06-18 14:00"], cwd=Path(tmpdir))
-            run_cli(["event", "add", "e5", "--at", "2026-06-18 15:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "e4", "--at", "2026-06-18T14:00"], cwd=Path(tmpdir))
+            run_cli(["event", "add", "e5", "--at", "2026-06-18T15:00"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-18", "note2"], cwd=Path(tmpdir))
 
             result = run_cli(["list"], cwd=Path(tmpdir))

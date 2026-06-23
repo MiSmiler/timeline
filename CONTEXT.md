@@ -40,6 +40,56 @@ Logical grouping of items by date in memory. Contains events, todos, and notes a
 Special record keyed by `0000-00-00`. Only contains Todos without time. Not allowed to have Events or Notes.
 _Avoid_: Inbox, backlog file
 
+## Time Expressions
+
+**TimeExpr**:
+Unified time expression abstraction. Parsing layer shared by todo and event commands. Contains either a Timepoint or a Timerange.
+_Avoid_: Time spec, date spec
+
+**Timepoint**:
+A point in time with optional components (date, time). Special keywords: `undated` (no date), `now` (current timestamp). Components:
+- date + time: Precise point (`2026-06-23T09:00`, `todayT09:00`)
+- date only: A day (`2026-06-23`, `today`)
+- time only: Auto-fill date=today (`09:00`)
+- empty: Boundary marker for Timerange
+_Avoid_: Date, timestamp, moment
+
+**Timerange**:
+A range between two Timepoints: `left..right`. Expansion rules:
+- left has date only → dateT00:00
+- right has date only → dateT23:59
+- time only → Auto-fill date=today
+- empty → Start/end boundary
+Constraint: left < right (reversed ranges rejected).
+_Avoid_: Period, interval, span
+
+**--at Parameter**:
+Unified time filter/spec parameter. Replaces previous `--range` and `--time`. Accepts Timepoint or Timerange. Behavior varies by command:
+- list commands: Timepoint expands to Timerange (full day for date-only)
+- add/edit commands: Timepoint sets exact or partial time (date-only → no time set)
+_Avoid_: --range, --time
+
+## CLI Parameters
+
+**--at**:
+Time expression filter. Required for time-based filtering. Syntax: Timepoint or Timerange.
+
+**--no-time**:
+Filter todos without time component. Only valid for Todo commands. Can combine with `--at` (must be Timerange, not Timepoint).
+
+**--status**:
+Filter by todo status (pending/completed/abandoned). Only valid for Todo commands.
+
+**--contains**:
+Filter by text substring (matches text or details). Valid for Todo and Event commands.
+
+**Execution Rule**:
+`todo list` and `event list` require at least one parameter (`--at`, `--no-time`, `--status`, `--contains`). If no time filter specified, default range is `..` (all dates).
+
+**Command-Specific Limits**:
+- Event add/edit: Requires precise Timepoint (date+time). `undated` and date-only rejected.
+- Todo add/edit: Accepts all Timepoint forms. `undated` creates no-date todo. date-only sets date without time. time-only auto-fills date=today.
+
 ## Views
 
 **Diary View**:
@@ -80,27 +130,6 @@ CLI output format and storage format have different field orders—this is inten
 - Storage format (`.timeline/data.jsonl`): `type`, `date`, `time`, `text`, `details`, `id` — optimized for git diff readability.
 - Output format (`--json`): `id`, `date`, `time`, `text`, `status`, `details` — optimized for AI Agent operations (id first for quick reference).
 AI Agents should always consume CLI output, never read `.timeline/data.jsonl` directly.
-
-**Range Filter**:
-`--range` parameter (required for list commands). Syntax: `left..right`
-- `..` = all
-- `today` = current day (00:00~23:59)
-- `yesterday` = previous day
-- `tomorrow` = next day
-- `..today` / `today..` = relative to today
-- `..YYYY-MM-DD` / `YYYY-MM-DD..` = relative to date
-- `YYYY-MM-DD..YYYY-MM-DD` = date range
-- `YYYY-MM-DDTHH:MM..` = precise time point
-- `..now` / `now..` = relative to current time
-- `?` = undated (standalone)
-
-Keywords: `now` (current timestamp), `today` (current day), `yesterday` (previous day), `tomorrow` (next day).
-
-**Text Filter**:
-`--contains` for substring matching.
-
-**Status Filter**:
-`--status` for filtering by status (pending/completed/abandoned).
 
 ## Boundaries
 

@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0012](0012-unified-time-expression-system.md)
+
+> **Note**: This ADR's parameter syntax (space separator) has been replaced by ADR-0012's T separator format.
+> The output format sections remain valid.
 
 ## Context
 
@@ -26,21 +29,23 @@ Replace separate `--date` and `--time` parameters with a single `--at` parameter
 
 **Requirement**: `--at` must be explicitly specified. No default value.
 
-### 2. `--at` Parameter Syntax
+### 2. `--at` Parameter Syntax (Updated by ADR-0012)
+
+> **Note**: Use T separator for date+time combinations. See ADR-0012 for current syntax.
 
 | Input | Parsed Result | Notes |
 |-------|---------------|-------|
-| `"2026-06-22 15:00"` | date=2026-06-22, time=15:00 | Explicit datetime |
+| `"2026-06-22T15:00"` | date=2026-06-22, time=15:00 | Explicit datetime |
 | `"now"` | date=today, time=current HH:MM | Current moment |
 | `"2026-06-22"` | date=2026-06-22, time=None | Date only |
 | `"today"` | date=today, time=None | Relative date |
 | `"yesterday"` | date=yesterday, time=None | Relative date |
 | `"tomorrow"` | date=tomorrow, time=None | Relative date |
-| `"today 15:00"` | date=today, time=15:00 | Relative date + explicit time |
-| `"yesterday 10:00"` | date=yesterday, time=10:00 | Relative date + explicit time |
-| `"tomorrow 09:00"` | date=tomorrow, time=09:00 | Relative date + explicit time |
+| `"todayT15:00"` | date=today, time=15:00 | Relative date + explicit time |
+| `"yesterdayT10:00"` | date=yesterday, time=10:00 | Relative date + explicit time |
+| `"tomorrowT09:00"` | date=tomorrow, time=09:00 | Relative date + explicit time |
 | `"15:00"` | date=today, time=15:00 | Time only, defaults to today |
-| `""` | undated | No date, no time |
+| `"undated"` | undated | No date, no time |
 | `"+2h"` | date=today, time=now+2h | Relative time offset |
 | `"-30m"` | date=today, time=now-30m | Relative time offset |
 | `"+2h30m"` | date=today, time=now+2h30m | Combined offset |
@@ -135,12 +140,12 @@ $ timeline-cli event add "Meeting" --at "yesterday 15:00"
 
 No data migration required. Only affects CLI argument parsing.
 
-**User migration guide**:
+**User migration guide** (updated for ADR-0012 T separator):
 ```bash
 # Old → New
 --date today --time now      → --at now
---date today --time 15:00    → --at "today 15:00"  or --at "15:00"
---date 2026-06-22 --time 10  → --at "2026-06-22 10:00"
+--date today --time 15:00    → --at "todayT15:00"  or --at "15:00"
+--date 2026-06-22 --time 10  → --at "2026-06-22T10:00"
 --date today                 → --at today
---date ?                     → --at ""
+--date ?                     → --at undated
 ```

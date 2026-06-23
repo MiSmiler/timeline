@@ -1,12 +1,12 @@
 """Note command implementations."""
 
-from timeline_cli.range_parser import normalize_date_string
 from timeline_cli.storage import (
     DEFAULT_STORAGE_FILE,
     get_or_create_daily_record,
     read_timeline,
     write_timeline,
 )
+from timeline_cli.time_expr import normalize_date_string
 
 
 def handle_note_add(args) -> None:
