@@ -11,7 +11,10 @@ from timeline_cli.models import DailyRecord, Timeline
 if TYPE_CHECKING:
     from timeline_cli.models import Event, Todo
 
-DEFAULT_STORAGE_FILE = ".timelines.jsonl"
+# New directory structure (ADR-0011)
+TIMELINE_DIR = ".timeline"
+DATA_FILE = "data.jsonl"
+DEFAULT_STORAGE_FILE = Path(TIMELINE_DIR) / DATA_FILE
 
 # ID configuration
 ID_CHARSET = string.ascii_lowercase + string.digits  # a-z0-9

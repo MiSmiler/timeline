@@ -31,7 +31,7 @@ class TestEventEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-15")
             assert items["events"][0]["text"] == "discussion"
 
@@ -79,7 +79,7 @@ class TestEventEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-15")
             assert items["events"][0]["time"] == "15:00"
 
@@ -127,7 +127,7 @@ class TestEventEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             # Should no longer be in 2026-06-15
             items_old = read_items_by_date(storage_file, "2026-06-15")
             assert len(items_old["events"]) == 0
@@ -223,7 +223,7 @@ class TestEventEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-15")
             assert "notes" in items["events"][0]["details"]
 
@@ -272,7 +272,7 @@ class TestEventEdit:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-15")
             assert items["events"][0]["details"] == ["new 1", "new 2"]
 
@@ -361,7 +361,7 @@ class TestEventDelete:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-15")
             assert len(items["events"]) == 0
 

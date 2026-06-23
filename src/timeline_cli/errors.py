@@ -11,7 +11,7 @@ class TimelineFileNotFoundError(TimelineError):
     """Timeline file not found."""
 
     def __init__(self, path: str):
-        super().__init__("Timeline file not found. Run 'timeline-cli init' to create one.")
+        super().__init__("No timeline found. Run 'timeline-cli init' to initialize.\nExpected: .timeline/data.jsonl")
         self.path = path
 
 

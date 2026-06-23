@@ -25,7 +25,7 @@ class TestTodoComplete:
             result = run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["status"] == "completed"
 
@@ -56,7 +56,7 @@ class TestTodoAbandon:
             result = run_cli(["todo", "abandon", "--id", todo_id], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["status"] == "abandoned"
 

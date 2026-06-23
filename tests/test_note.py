@@ -17,7 +17,7 @@ class TestNoteAdd:
             result = run_cli(["note", "add", "2026-06-16", "Today was productive"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["notes"]) == 1
             assert items["notes"][0]["text"] == "Today was productive"
@@ -29,7 +29,7 @@ class TestNoteAdd:
             run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-16", "good day"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["todos"]) == 1
             assert len(items["notes"]) == 1
@@ -42,7 +42,7 @@ class TestNoteAdd:
             run_cli(["note", "add", "2026-06-16", "first note"], cwd=Path(tmpdir))
             run_cli(["note", "add", "2026-06-16", "second note"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["notes"]) == 1
             assert items["notes"][0]["text"] == "second note"
@@ -91,7 +91,7 @@ class TestNoteEdit:
             result = run_cli(["note", "edit", "2026-06-16", "new thought"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["notes"][0]["text"] == "new thought"
 
@@ -103,6 +103,6 @@ class TestNoteEdit:
             result = run_cli(["note", "edit", "2026-06-16", "created note"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["notes"][0]["text"] == "created note"

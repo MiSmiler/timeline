@@ -23,7 +23,7 @@ class TestEventAdd:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             content = storage_file.read_text().strip().split("\n")
             assert len(content) == 2  # header + one event
 
@@ -191,7 +191,7 @@ class TestEventAddWithDetail:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["events"][0]["details"] == ["discussed project"]
 
@@ -216,7 +216,7 @@ class TestEventAddWithDetail:
             )
             assert result.returncode == 0
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["events"][0]["details"] == ["item 1", "item 2"]
 
@@ -227,7 +227,7 @@ class TestEventAddWithDetail:
             run_cli(["event", "add", "morning", "--at", "2026-06-16 10:00"], cwd=Path(tmpdir))
             run_cli(["event", "add", "afternoon", "--at", "2026-06-16 14:30"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert len(items["events"]) == 2
             # Should be sorted by time

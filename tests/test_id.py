@@ -26,7 +26,7 @@ class TestIDGeneration:
             assert "]" in result.stdout
 
             # Verify ID in storage
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             todo = items["todos"][0]
 
@@ -53,7 +53,7 @@ class TestIDGeneration:
             assert "]" in result.stdout
 
             # Verify ID in storage
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             event = items["events"][0]
 
@@ -74,7 +74,7 @@ class TestIDGeneration:
             run_cli(["todo", "add", "task 3", "--at", "2026-06-17"], cwd=Path(tmpdir))
 
             # Verify IDs are unique
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             from conftest import read_items_from_storage
 
             items = read_items_from_storage(storage_file)
@@ -151,7 +151,9 @@ class TestBackwardCompatibility:
         """Should read v1 data (no id field) without error."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create v1 data manually (no id field)
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             content = [
                 json.dumps({"schema_version": 1}),
                 json.dumps(
@@ -181,7 +183,9 @@ class TestBackwardCompatibility:
         """List command should work even when items have no ID."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create v1 data manually
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             content = [
                 json.dumps({"schema_version": 1}),
                 json.dumps(
@@ -217,7 +221,7 @@ class TestIDFormat:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["todos"][0]["id"].startswith("t")
 
@@ -230,7 +234,7 @@ class TestIDFormat:
                 cwd=Path(tmpdir),
             )
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             assert items["events"][0]["id"].startswith("e")
 
@@ -240,7 +244,7 @@ class TestIDFormat:
             run_cli(["init"], cwd=Path(tmpdir))
             run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             items = read_items_by_date(storage_file, "2026-06-16")
             todo_id = items["todos"][0]["id"]
 

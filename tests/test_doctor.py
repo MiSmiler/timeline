@@ -13,7 +13,7 @@ class TestDoctor:
         """Tracer bullet: timeline-cli doctor passes for valid file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            run_cli(["todo", "add", "task", "--date", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
             assert result.returncode == 0
@@ -22,7 +22,9 @@ class TestDoctor:
     def test_doctor_invalid_json_fails(self):
         """Doctor fails for invalid JSON line."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text('{"schema_version": 1}\n{invalid json}')
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
@@ -32,7 +34,9 @@ class TestDoctor:
     def test_doctor_missing_schema_version_fails(self):
         """Doctor fails for missing schema_version header."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text('{"type": "todo", "date": "2026-06-16", "text": "task"}')
 
             result = run_cli(["doctor"], cwd=Path(tmpdir))
@@ -42,7 +46,9 @@ class TestDoctor:
     def test_doctor_invalid_date_format_fails(self):
         """Doctor fails for invalid date format."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text(
                 '{"schema_version": 1}\n{"type": "todo", "date": "invalid-date", "text": "task", "status": "pending"}'
             )
@@ -54,7 +60,9 @@ class TestDoctor:
     def test_doctor_invalid_status_fails(self):
         """Doctor fails for invalid todo status."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text(
                 '{"schema_version": 1}\n{"type": "todo", "date": "2026-06-16", "text": "task", "status": "invalid"}'
             )
@@ -66,7 +74,9 @@ class TestDoctor:
     def test_doctor_fixes_sorting(self):
         """Doctor --fix auto-fixes sorting issues."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             # Create unsorted events (new format)
             storage_file.write_text(
                 '{"schema_version": 1}\n'
@@ -85,7 +95,9 @@ class TestDoctor:
     def test_doctor_undated_with_time_fails(self):
         """Doctor fails if undated todo has time."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text(
                 '{"schema_version": 1}\n'
                 '{"type": "todo", "date": null, "text": "task", "status": "pending", "time": "14:30"}'
@@ -97,7 +109,9 @@ class TestDoctor:
     def test_doctor_event_without_date_fails(self):
         """Doctor fails if event has no date."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text(
                 '{"schema_version": 1}\n{"type": "event", "date": null, "time": "14:30", "text": "event"}'
             )
@@ -108,7 +122,9 @@ class TestDoctor:
     def test_doctor_multiple_notes_same_date_fails(self):
         """Doctor fails if multiple notes for same date."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text(
                 '{"schema_version": 1}\n'
                 '{"type": "note", "date": "2026-06-16", "text": "note 1"}\n'
@@ -122,7 +138,9 @@ class TestDoctor:
     def test_doctor_duplicate_id_fails(self):
         """Doctor fails if duplicate IDs."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            storage_file = Path(tmpdir) / ".timelines.jsonl"
+            timeline_dir = Path(tmpdir) / ".timeline"
+            timeline_dir.mkdir()
+            storage_file = timeline_dir / "data.jsonl"
             storage_file.write_text(
                 '{"schema_version": 1}\n'
                 '{"type": "todo", "id": "t123", "date": "2026-06-16", "text": "task 1", "status": "pending"}\n'

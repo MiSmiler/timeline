@@ -74,7 +74,7 @@ def _dispatch(args: argparse.Namespace) -> None:
     if args.resource == "init":
         from timeline_cli.commands.init import handle_init
 
-        handle_init()
+        handle_init(args)
     elif args.resource == "todo":
         from timeline_cli.commands.todo import (
             handle_todo_abandon,
@@ -252,7 +252,7 @@ def _setup_note_commands(subparsers: argparse._SubParsersAction) -> None:
 def _setup_other_commands(subparsers: argparse._SubParsersAction) -> None:
     """Setup other command parsers."""
     # init
-    subparsers.add_parser("init", help="Initialize .timelines.jsonl")
+    subparsers.add_parser("init", help="Initialize .timeline directory")
 
     # list
     subparsers.add_parser("list", help="List all dates")
