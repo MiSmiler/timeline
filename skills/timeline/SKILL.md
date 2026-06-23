@@ -11,9 +11,11 @@ timeline-cli 是一个基于 JSONL 存储的待办/事件/笔记管理工具。A
 
 ## 概述
 
-**存储位置**：`.timelines.jsonl`（项目目录下的隐藏文件）
+**存储位置**：`.timeline/data.jsonl`
 
-**首次使用**：需运行 `timeline-cli init` 初始化存储文件
+**禁止直接修改**：所有数据操作必须通过 CLI 命令完成。直接编辑 jsonl 文件会绕过验证逻辑，导致数据损坏。
+
+**首次使用**：需运行 `timeline-cli init` 初始化存储
 
 **命令结构**：`timeline-cli <resource> <action> [args]`
 
@@ -433,7 +435,7 @@ timeline-cli doctor --fix
 timeline-cli init
 ```
 
-创建 `.timelines.jsonl` 文件。文件已存在时会报错。
+初始化 `.timeline/` 目录及 `data.jsonl` 文件。已存在时会报错。
 
 ### list
 
