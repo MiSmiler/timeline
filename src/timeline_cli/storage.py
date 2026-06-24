@@ -91,8 +91,16 @@ def write_timeline(timeline: Timeline, path: str | Path = DEFAULT_STORAGE_FILE) 
     path.write_text("\n".join(lines) + "\n")
 
 
-def get_or_create_daily_record(timeline: Timeline, date: str) -> DailyRecord:
-    """Get existing daily record or create a new one."""
+def get_or_create_daily_record(timeline: Timeline, date: str | None) -> DailyRecord:
+    """Get existing daily record or create a new one.
+
+    Args:
+        timeline: Timeline to operate on
+        date: Date string (YYYY-MM-DD) or None for undated
+
+    Returns:
+        DailyRecord for the given date
+    """
     if date not in timeline.records:
         timeline.records[date] = DailyRecord(date=date)
     return timeline.records[date]
@@ -174,7 +182,7 @@ def find_event_by_id(record: DailyRecord, event_id: str) -> tuple[int, "Event"] 
     return None
 
 
-def find_todo_by_id_in_timeline(timeline: Timeline, todo_id: str) -> tuple[str, DailyRecord, int, "Todo"] | None:
+def find_todo_by_id_in_timeline(timeline: Timeline, todo_id: str) -> tuple[str | None, DailyRecord, int, "Todo"] | None:
     """Find todo by ID across all daily records.
 
     Args:
@@ -182,7 +190,8 @@ def find_todo_by_id_in_timeline(timeline: Timeline, todo_id: str) -> tuple[str, 
         todo_id: Todo ID (e.g., 't7b3k')
 
     Returns:
-        Tuple of (date, record, index, todo) if found, None otherwise
+        Tuple of (date, record, index, todo) if found, None otherwise.
+        Date may be None for undated todos.
     """
     for date, record in timeline.records.items():
         result = find_todo_by_id(record, todo_id)
@@ -192,7 +201,9 @@ def find_todo_by_id_in_timeline(timeline: Timeline, todo_id: str) -> tuple[str, 
     return None
 
 
-def find_event_by_id_in_timeline(timeline: Timeline, event_id: str) -> tuple[str, DailyRecord, int, "Event"] | None:
+def find_event_by_id_in_timeline(
+    timeline: Timeline, event_id: str
+) -> tuple[str | None, DailyRecord, int, "Event"] | None:
     """Find event by ID across all daily records.
 
     Args:
@@ -200,7 +211,8 @@ def find_event_by_id_in_timeline(timeline: Timeline, event_id: str) -> tuple[str
         event_id: Event ID (e.g., 'e4x1m')
 
     Returns:
-        Tuple of (date, record, index, event) if found, None otherwise
+        Tuple of (date, record, index, event) if found, None otherwise.
+        Note: Events always have a date (never None).
     """
     for date, record in timeline.records.items():
         result = find_event_by_id(record, event_id)

@@ -260,13 +260,14 @@ class TestAtParameterForEventList:
             assert "meeting 16" in result.stdout
             assert "meeting 17" not in result.stdout
 
-    def test_event_list_at_undated_rejected(self):
-        """Event list --at undated should be rejected."""
+    def test_event_list_at_undated_returns_empty(self):
+        """Event list --at undated returns empty (events cannot have null date)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(["event", "list", "--at", "undated"], cwd=Path(tmpdir))
-            assert result.returncode != 0
-            assert "undated" in result.stderr.lower() or "event" in result.stderr.lower()
+            # No error - just returns empty result (events cannot be undated)
+            assert result.returncode == 0
+            assert "No events found" in result.stdout
 
     def test_event_list_at_json_output(self):
         """Event list --at --json should include date field."""

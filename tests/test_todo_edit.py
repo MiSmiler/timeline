@@ -144,7 +144,7 @@ class TestTodoEdit:
             assert f"[{todo_id}] Edited: date: 2026-06-16 → 2026-06-17" in result.stdout
 
     def test_todo_edit_new_at_to_undated(self):
-        """Todo edit --new-at "" converts dated todo to undated."""
+        """Todo edit --new-at undated converts dated todo to undated."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
             result = run_cli(["todo", "add", "task", "--at", "2026-06-16"], cwd=Path(tmpdir))
@@ -156,21 +156,21 @@ class TestTodoEdit:
             todo_id = match.group(1)
 
             result = run_cli(
-                ["todo", "edit", "--id", todo_id, "--new-at", ""],
+                ["todo", "edit", "--id", todo_id, "--new-at", "undated"],
                 cwd=Path(tmpdir),
             )
             assert result.returncode == 0
 
             storage_file = Path(tmpdir) / ".timeline/data.jsonl"
-            # Should be in undated (0000-00-00)
-            items = read_items_by_date(storage_file, "0000-00-00")
+            # Should be in undated (date: null)
+            items = read_items_by_date(storage_file, None)
             assert len(items["todos"]) == 1
 
     def test_todo_edit_new_at_from_undated(self):
         """Todo edit --new-at converts undated todo to dated."""
         with tempfile.TemporaryDirectory() as tmpdir:
             run_cli(["init"], cwd=Path(tmpdir))
-            result = run_cli(["todo", "add", "task", "--at", ""], cwd=Path(tmpdir))
+            result = run_cli(["todo", "add", "task", "--at", "undated"], cwd=Path(tmpdir))
             assert result.returncode == 0
 
             # Extract ID
@@ -186,7 +186,7 @@ class TestTodoEdit:
 
             storage_file = Path(tmpdir) / ".timeline/data.jsonl"
             # Should no longer be in undated
-            items_old = read_items_by_date(storage_file, "0000-00-00")
+            items_old = read_items_by_date(storage_file, None)
             assert len(items_old["todos"]) == 0
             # Should be in 2026-06-17
             items_new = read_items_by_date(storage_file, "2026-06-17")

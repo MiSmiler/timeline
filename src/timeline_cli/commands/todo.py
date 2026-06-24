@@ -25,33 +25,37 @@ def handle_todo_add(args) -> None:
     # Parse --at parameter using TimeExpr
     time_expr = TimeExpr.parse(args.at)
 
-    # Reject timerange for add (only timepoint allowed)
-    if time_expr.kind == "timerange":
+    # Determine normalized date and time
+    if time_expr.kind == "timerange" and time_expr.timerange.is_undated:
+        # Special case: undated (Timerange keyword)
+        normalized_date = None
+        normalized_time = None
+    elif time_expr.kind == "timerange":
+        # Regular timerange - reject for add
         raise TimelineValidationError(
             "Cannot use timerange for --at in add command. "
             "Use a timepoint like 'todayT09:00', 'today', 'undated', or 'now'."
         )
-
-    tp = time_expr.timepoint
-
-    # Determine normalized date and time
-    if tp.is_undated:
-        normalized_date = "0000-00-00"
-        normalized_time = None
     else:
-        # Get concrete date/time from timepoint
-        dt = tp.to_datetime()
-        if dt is None:
-            # Empty timepoint - treat as undated
-            normalized_date = "0000-00-00"
+        # Timepoint
+        tp = time_expr.timepoint
+        if tp.is_undated:
+            normalized_date = None
             normalized_time = None
-        elif isinstance(dt, datetime):
-            normalized_date = dt.date().isoformat()
-            normalized_time = dt.strftime("%H:%M")
         else:
-            # Date only
-            normalized_date = dt.isoformat()
-            normalized_time = None
+            # Get concrete date/time from timepoint
+            dt = tp.to_datetime()
+            if dt is None:
+                # Empty timepoint - treat as undated
+                normalized_date = None
+                normalized_time = None
+            elif isinstance(dt, datetime):
+                normalized_date = dt.date().isoformat()
+                normalized_time = dt.strftime("%H:%M")
+            else:
+                # Date only
+                normalized_date = dt.isoformat()
+                normalized_time = None
 
     record = get_or_create_daily_record(timeline, normalized_date)
 
@@ -76,7 +80,7 @@ def handle_todo_add(args) -> None:
     write_timeline(timeline, DEFAULT_STORAGE_FILE)
 
     # Git-style output with normalized date and time
-    if normalized_date == "0000-00-00":
+    if normalized_date is None:
         print(f"[{todo_id}] Added: {args.text} (undated)")
     elif normalized_time:
         print(f"[{todo_id}] Added: {args.text} ({normalized_date} {normalized_time})")
@@ -109,11 +113,11 @@ def handle_todo_list(args) -> None:
     if args.at:
         time_expr = TimeExpr.parse(args.at)
 
-        # Handle undated as special case (only undated items, no dated)
-        if time_expr.kind == "timepoint" and time_expr.timepoint.is_undated:
-            # For undated: filter only items from 0000-00-00 record
+        # Handle undated as special Timerange keyword
+        if time_expr.kind == "timerange" and time_expr.timerange.is_undated:
+            # For undated: filter only items with date=None
             for date_str, record in timeline.records.items():
-                if date_str == "0000-00-00":
+                if date_str is None:
                     for todo in record.todos:
                         todos_with_dates.append((date_str, todo))
         elif time_expr.kind == "timerange":
@@ -132,6 +136,7 @@ def handle_todo_list(args) -> None:
                     date_range = DateRange(
                         start=datetime.combine(date_obj, time.min),
                         end=datetime.combine(date_obj, time.max.replace(microsecond=0)),
+                        include_undated=False,
                     )
                 else:
                     date_range = DateRange()  # Empty timepoint -> all (shouldn't happen)
@@ -237,30 +242,34 @@ def handle_todo_edit(args) -> None:
     if args.new_at is not None:
         time_expr = TimeExpr.parse(args.new_at)
 
-        # Reject timerange for edit (only timepoint allowed)
-        if time_expr.kind == "timerange":
+        # Determine normalized date and time
+        if time_expr.kind == "timerange" and time_expr.timerange.is_undated:
+            # Special case: undated (Timerange keyword)
+            new_date = None
+            new_time = None
+        elif time_expr.kind == "timerange":
+            # Regular timerange - reject for edit
             raise TimelineValidationError(
                 "Cannot use timerange for --new-at in edit command. "
                 "Use a timepoint like 'todayT09:00', 'today', 'undated', or 'now'."
             )
-
-        tp = time_expr.timepoint
-
-        # Determine normalized date and time
-        if tp.is_undated:
-            new_date = "0000-00-00"
-            new_time = None
         else:
-            dt = tp.to_datetime()
-            if dt is None:
-                new_date = "0000-00-00"
+            # Timepoint
+            tp = time_expr.timepoint
+            if tp.is_undated:
+                new_date = None
                 new_time = None
-            elif isinstance(dt, datetime):
-                new_date = dt.date().isoformat()
-                new_time = dt.strftime("%H:%M")
             else:
-                new_date = dt.isoformat()
-                new_time = None
+                dt = tp.to_datetime()
+                if dt is None:
+                    new_date = None
+                    new_time = None
+                elif isinstance(dt, datetime):
+                    new_date = dt.date().isoformat()
+                    new_time = dt.strftime("%H:%M")
+                else:
+                    new_date = dt.isoformat()
+                    new_time = None
 
         # Track date/time changes
         old_time_str = todo.time or "(no time)"
@@ -282,12 +291,12 @@ def handle_todo_edit(args) -> None:
             _sort_todos(new_record.todos)
 
             # Track changes
-            if old_date == "0000-00-00":
+            if old_date is None:
                 old_date_str = "undated"
             else:
                 old_date_str = old_date
 
-            if new_date == "0000-00-00":
+            if new_date is None:
                 new_date_str = "undated"
             else:
                 new_date_str = new_date
