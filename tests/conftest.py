@@ -70,8 +70,12 @@ def read_items_from_storage(storage_file: Path) -> dict[str, list[dict]]:
     return items_by_type
 
 
-def read_items_by_date(storage_file: Path, date: str) -> dict[str, list[dict]]:
+def read_items_by_date(storage_file: Path, date: str | None) -> dict[str, list[dict]]:
     """Read items from .timelines.jsonl and group by type for a specific date.
+
+    Args:
+        storage_file: Path to data.jsonl
+        date: Date string (YYYY-MM-DD) or None for undated items
 
     Returns dict with keys: 'events', 'todos', 'notes'.
     Each value is a list of items (dict) matching the date.

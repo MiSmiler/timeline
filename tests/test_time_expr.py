@@ -395,11 +395,12 @@ class TestTimeExprParsing:
         assert te.timerange is not None
         assert te.timepoint is None
 
-    def test_parse_timeexpr_undated_is_timepoint(self):
-        """undated -> TimeExpr(kind='timepoint', is_undated=True)"""
+    def test_parse_timeexpr_undated_is_timerange(self):
+        """undated -> TimeExpr(kind='timerange', is_undated=True)"""
         te = TimeExpr.parse("undated")
-        assert te.kind == "timepoint"
-        assert te.timepoint.is_undated
+        assert te.kind == "timerange"
+        assert te.timerange is not None
+        assert te.timerange.is_undated
 
     def test_parse_timeexpr_now_is_timepoint(self):
         """now -> TimeExpr(kind='timepoint')"""

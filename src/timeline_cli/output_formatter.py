@@ -104,9 +104,9 @@ def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False
         groups[date].append(todo)
 
     lines = []
-    for date in sorted(groups.keys()):
+    for date in sorted(groups.keys(), key=lambda d: (d is None, d or "")):
         # Use "Undated" for null date
-        header = "# Undated" if date == "0000-00-00" else f"# {date}"
+        header = "# Undated" if date is None else f"# {date}"
         lines.append(header)
 
         for todo in groups[date]:

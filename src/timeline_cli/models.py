@@ -1,9 +1,34 @@
 """Data models for timeline-cli."""
 
 import json
+import re
 from dataclasses import dataclass, field
 
 from timeline_cli.errors import TimelineInternalError
+
+# Date validation pattern: YYYY-MM-DD
+DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def validate_date(date: str | None) -> str | None:
+    """Validate date field.
+
+    Args:
+        date: Date string or None
+
+    Returns:
+        Validated date (unchanged)
+
+    Raises:
+        TimelineInternalError: If date is invalid (not None and not YYYY-MM-DD)
+    """
+    if date is None:
+        return None
+    if not DATE_PATTERN.match(date):
+        raise TimelineInternalError(
+            f"Invalid date format: '{date}'. Expected YYYY-MM-DD or null. Run 'timeline-cli doctor --fix' to repair."
+        )
+    return date
 
 
 @dataclass
@@ -75,7 +100,7 @@ class Event:
 class DailyRecord:
     """A single day's timeline data."""
 
-    date: str  # YYYY-MM-DD or 0000-00-00
+    date: str | None  # YYYY-MM-DD or None for undated
     events: list[Event] = field(default_factory=list)
     todos: list[Todo] = field(default_factory=list)
     notes: str | None = None
@@ -105,7 +130,7 @@ class Timeline:
     """The full timeline data structure."""
 
     schema_version: int
-    records: dict[str, DailyRecord] = field(default_factory=dict)
+    records: dict[str | None, DailyRecord] = field(default_factory=dict)
 
     def to_lines(self) -> list[str]:
         """Convert to list of JSON lines for storage.
@@ -192,7 +217,7 @@ class Timeline:
         if "schema_version" not in first:
             raise TimelineInternalError("Missing schema_version header. Run 'timeline-cli doctor --fix' to repair.")
 
-        records: dict[str, DailyRecord] = {}
+        records: dict[str | None, DailyRecord] = {}
 
         for line in lines[1:]:
             if line.strip():
@@ -204,13 +229,13 @@ class Timeline:
                     ) from e
 
                 item_type = item.get("type")
-                date = item.get("date")
+                date = validate_date(item.get("date"))
 
                 # Check if this is old format (DailyRecord with events/todos arrays)
                 if item_type is None and "events" in item or "todos" in item or "notes" in item:
                     # Old format: convert to new format internally
                     record = DailyRecord.from_dict(item)
-                    records[record.date] = record
+                    records[validate_date(record.date)] = record
                     continue
 
                 # New format: one item per line

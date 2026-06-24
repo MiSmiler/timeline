@@ -95,10 +95,13 @@ class Timerange:
     - End date-only -> dateT23:59
     - Time-only -> auto-fill date=today
     - Empty -> start/end boundary
+
+    Special case: is_undated=True means "undated items" (no date dimension).
     """
 
     start: Timepoint  # start boundary (empty = no lower bound)
     end: Timepoint  # end boundary (empty = no upper bound)
+    is_undated: bool = False  # True for "undated" keyword
 
     def expand_for_query(self, now: datetime | None = None) -> DateRange:
         """Expand to concrete DateRange for filtering.
@@ -111,6 +114,10 @@ class Timerange:
         """
         if now is None:
             now = datetime.now()
+
+        # Special case: undated filter
+        if self.is_undated:
+            return DateRange(start=None, end=None, include_undated=True)
 
         # Expand start boundary
         if self.start.date is None and self.start.time is None:
@@ -161,7 +168,10 @@ class Timerange:
 
             end = datetime.combine(end_date, end_time)
 
-        return DateRange(start=start, end=end)
+        # Bug fix: include_undated=True for full range (..)
+        include_undated = start is None and end is None
+
+        return DateRange(start=start, end=end, include_undated=include_undated)
 
 
 @dataclass
@@ -180,6 +190,7 @@ class TimeExpr:
         """Parse time expression string.
 
         Detects ".." separator -> Timerange, otherwise -> Timepoint.
+        Special case: "undated" -> Timerange(is_undated=True).
 
         Args:
             value: Time expression string.
@@ -193,6 +204,17 @@ class TimeExpr:
         """
         if now is None:
             now = datetime.now()
+
+        # Special case: "undated" is a Timerange keyword
+        if value == "undated":
+            return cls(
+                kind="timerange",
+                timerange=Timerange(
+                    start=Timepoint(),
+                    end=Timepoint(),
+                    is_undated=True,
+                ),
+            )
 
         # Detect ".." separator for timerange
         if ".." in value:
@@ -476,7 +498,7 @@ def normalize_date_string(value: str) -> str:
         value: Date string (may be relative keyword like "yesterday" or "tomorrow")
 
     Returns:
-        Date string in YYYY-MM-DD format (or special date like "0000-00-00")
+        Date string in YYYY-MM-DD format.
 
     Raises:
         TimelineValidationError: If format is invalid.
@@ -484,10 +506,6 @@ def normalize_date_string(value: str) -> str:
     # Reject 'now' as date parameter
     if value == "now":
         raise TimelineValidationError("'now' is not a valid date. Use 'today' instead.")
-
-    # Special case: undated items (0000-00-00)
-    if value == "0000-00-00":
-        return "0000-00-00"
 
     if value == "today":
         return date.today().isoformat()
@@ -516,12 +534,8 @@ def is_date_in_range(date_str: str | None, date_range: DateRange) -> bool:
     Returns:
         True if date is in range
     """
-    # Handle undated items
+    # Handle undated items (date is None)
     if date_str is None:
-        return date_range.include_undated
-
-    # Handle undated record (0000-00-00)
-    if date_str == "0000-00-00":
         return date_range.include_undated
 
     # Parse the date
@@ -584,11 +598,13 @@ def is_datetime_in_range(dt: datetime, date_range: DateRange) -> bool:
     return True
 
 
-def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRange) -> list[tuple[str, "Todo"]]:
+def filter_todos_by_range(
+    records: dict[str | None, "DailyRecord"], date_range: DateRange
+) -> list[tuple[str | None, "Todo"]]:
     """Filter todos by date range with precise time handling.
 
     Args:
-        records: Dictionary of date -> DailyRecord
+        records: Dictionary of date -> DailyRecord (date can be None for undated)
         date_range: DateRange to filter by
 
     Returns:
@@ -597,6 +613,7 @@ def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRan
     Filtering rules (Issue #89):
         - Timed todos: Precise datetime filtering, closed interval [start, end]
         - No-time todos: Date filtering, date must fall within [start.date(), end.date()]
+        - Undated todos (date=None): Only included if date_range.include_undated=True
     """
     results = []
 
@@ -618,8 +635,12 @@ def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRan
             end_date = date_range.end
 
     for date_str, record in records.items():
-        # Skip undated record (0000-00-00) - handled separately by --at undated
-        if date_str == "0000-00-00":
+        # Skip undated record if not included in range
+        if date_str is None:
+            if date_range.include_undated:
+                # Include all undated todos
+                for todo in record.todos:
+                    results.append((None, todo))
             continue
 
         todo_date = date.fromisoformat(date_str)
@@ -642,18 +663,26 @@ def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRan
     return results
 
 
-def filter_events_by_range(records: dict[str, "DailyRecord"], date_range: DateRange) -> list[tuple[str, "Event"]]:
+def filter_events_by_range(
+    records: dict[str | None, "DailyRecord"], date_range: DateRange
+) -> list[tuple[str | None, "Event"]]:
     """Filter events by date range.
 
     Args:
-        records: Dictionary of date -> DailyRecord
+        records: Dictionary of date -> DailyRecord (date can be None for undated)
         date_range: DateRange to filter by
 
     Returns:
         List of (date, event) tuples that match the range
+
+    Note: Events always have a date (never None), so undated records are skipped.
     """
     results = []
     for date_str, record in records.items():
+        # Events cannot be undated
+        if date_str is None:
+            continue
+
         # Check if date is in range
         if not is_date_in_range(date_str, date_range):
             continue
