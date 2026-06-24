@@ -10,8 +10,8 @@ description: 基于 timelines 数据进行日常复盘和计划追问，生成 r
 ## 工作流程
 
 1. **读取数据**
-   - 读取今天的 `timelines/YYYY-MM-DD.md`
-   - 读取近几天的 timelines（了解上下文）
+   - 用 `timeline-cli diary <date>` 或 `timeline-cli todo list --at <date> --json` 读取今天的记录
+   - 用 `timeline-cli list` 查看近几天有哪些记录，按需读取上下文
    - 读取 `plans/` 目录下的所有计划文件
    - 读取 `reviews/` 目录了解历史复盘（如果存在）
 
