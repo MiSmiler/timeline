@@ -42,3 +42,7 @@ addopts = "-v --tb=short"
 dev = [
     "ruff>=0.15.17",
 ]
+
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
