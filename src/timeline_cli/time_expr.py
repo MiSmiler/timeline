@@ -594,7 +594,7 @@ def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRan
     Returns:
         List of (date, todo) tuples that match the range
 
-    Filtering rules (Bug 2 fix):
+    Filtering rules (Issue #89):
         - Timed todos: Precise datetime filtering, closed interval [start, end]
         - No-time todos: Date filtering, date must fall within [start.date(), end.date()]
     """

@@ -212,7 +212,7 @@ class TestTimerangeParsing:
     """Tests for parse_timerange function."""
 
     def test_parse_timerange_all(self):
-        """parse_timerange("..") -> left=empty, right=empty"""
+        """parse_timerange("..") -> start=empty, end=empty"""
         tr = parse_timerange("..")
         assert tr.start.date is None
         assert tr.start.time is None
@@ -220,7 +220,7 @@ class TestTimerangeParsing:
         assert tr.end.time is None
 
     def test_parse_timerange_date_range(self):
-        """parse_timerange("2026-06-23..2026-06-25") -> left=2026-06-23, right=2026-06-25"""
+        """parse_timerange("2026-06-23..2026-06-25") -> start=2026-06-23, end=2026-06-25"""
         tr = parse_timerange("2026-06-23..2026-06-25")
         assert tr.start.date == "2026-06-23"
         assert tr.start.time is None
@@ -228,25 +228,25 @@ class TestTimerangeParsing:
         assert tr.end.time is None
 
     def test_parse_timerange_relative_range(self):
-        """parse_timerange("yesterday..today") -> left=yesterday, right=today"""
+        """parse_timerange("yesterday..today") -> start=yesterday, end=today"""
         tr = parse_timerange("yesterday..today")
         assert tr.start.date is not None
         assert tr.end.date is not None
 
     def test_parse_timerange_open_start(self):
-        """parse_timerange("..today") -> left=empty, right=today"""
+        """parse_timerange("..today") -> start=empty, end=today"""
         tr = parse_timerange("..today")
         assert tr.start.date is None
         assert tr.end.date is not None
 
     def test_parse_timerange_open_end(self):
-        """parse_timerange("today..") -> left=today, right=empty"""
+        """parse_timerange("today..") -> start=today, end=empty"""
         tr = parse_timerange("today..")
         assert tr.start.date is not None
         assert tr.end.date is None
 
     def test_parse_timerange_time_range(self):
-        """parse_timerange("09:00..17:00") -> left=todayT09:00, right=todayT17:00"""
+        """parse_timerange("09:00..17:00") -> start=todayT09:00, end=todayT17:00"""
         tr = parse_timerange("09:00..17:00")
         assert tr.start.time == "09:00"
         assert tr.end.time == "17:00"
@@ -285,14 +285,14 @@ class TestTimerangeParsing:
         with pytest.raises(TimelineValidationError) as exc_info:
             parse_timerange("2026-06-25..2026-06-23")
         error_msg = str(exc_info.value).lower()
-        assert "reversed" in error_msg or "left < right" in error_msg or "before" in error_msg
+        assert "reversed" in error_msg or "start" in error_msg or "before" in error_msg
 
     def test_parse_timerange_reversed_time_rejected(self):
         """parse_timerange("17:00..09:00") -> raise error (reversed time)"""
         with pytest.raises(TimelineValidationError) as exc_info:
             parse_timerange("17:00..09:00")
         error_msg = str(exc_info.value).lower()
-        assert "reversed" in error_msg or "left < right" in error_msg or "before" in error_msg
+        assert "reversed" in error_msg or "start" in error_msg or "before" in error_msg
 
     def test_parse_timerange_same_date_allowed(self):
         """parse_timerange("2026-06-23..2026-06-23") -> allowed (same day)"""
