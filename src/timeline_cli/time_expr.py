@@ -2,7 +2,7 @@
 
 Key concepts:
 - Timepoint: A point in time with optional components (date, time)
-- Timerange: A range between two Timepoints (left..right)
+- Timerange: A range between two Timepoints (start..end)
 - TimeExpr: Unified abstraction containing either Timepoint or Timerange
 """
 
@@ -91,14 +91,14 @@ class Timerange:
 
     Format: timepoint..timepoint
     Expansion rules applied during expand_for_query():
-    - Left date-only -> dateT00:00
-    - Right date-only -> dateT23:59
+    - Start date-only -> dateT00:00
+    - End date-only -> dateT23:59
     - Time-only -> auto-fill date=today
     - Empty -> start/end boundary
     """
 
-    left: Timepoint  # start boundary (empty = no lower bound)
-    right: Timepoint  # end boundary (empty = no upper bound)
+    start: Timepoint  # start boundary (empty = no lower bound)
+    end: Timepoint  # end boundary (empty = no upper bound)
 
     def expand_for_query(self, now: datetime | None = None) -> DateRange:
         """Expand to concrete DateRange for filtering.
@@ -112,54 +112,54 @@ class Timerange:
         if now is None:
             now = datetime.now()
 
-        # Expand left boundary
-        if self.left.date is None and self.left.time is None:
-            # Empty left -> no lower bound
+        # Expand start boundary
+        if self.start.date is None and self.start.time is None:
+            # Empty start -> no lower bound
             start = None
-        elif self.left.is_undated:
+        elif self.start.is_undated:
             # Undated in range -> should have been rejected during parsing
             raise TimelineValidationError(
                 "Timerange cannot include 'undated' keyword. Use --at undated to filter undated items."
             )
         else:
             # Has date or time
-            if self.left.date is None:
+            if self.start.date is None:
                 # Time only - auto-fill today
-                left_date = now.date()
+                start_date = now.date()
             else:
-                left_date = date.fromisoformat(self.left.date)
+                start_date = date.fromisoformat(self.start.date)
 
-            if self.left.time is None:
+            if self.start.time is None:
                 # Date only - expand to T00:00
-                left_time = time.min
+                start_time = time.min
             else:
-                left_time = time.fromisoformat(self.left.time)
+                start_time = time.fromisoformat(self.start.time)
 
-            start = datetime.combine(left_date, left_time)
+            start = datetime.combine(start_date, start_time)
 
-        # Expand right boundary
-        if self.right.date is None and self.right.time is None:
-            # Empty right -> no upper bound
+        # Expand end boundary
+        if self.end.date is None and self.end.time is None:
+            # Empty end -> no upper bound
             end = None
-        elif self.right.is_undated:
+        elif self.end.is_undated:
             raise TimelineValidationError(
                 "Timerange cannot include 'undated' keyword. Use --at undated to filter undated items."
             )
         else:
             # Has date or time
-            if self.right.date is None:
+            if self.end.date is None:
                 # Time only - auto-fill today
-                right_date = now.date()
+                end_date = now.date()
             else:
-                right_date = date.fromisoformat(self.right.date)
+                end_date = date.fromisoformat(self.end.date)
 
-            if self.right.time is None:
+            if self.end.time is None:
                 # Date only - expand to T23:59
-                right_time = time.max.replace(microsecond=0)
+                end_time = time.max.replace(microsecond=0)
             else:
-                right_time = time.fromisoformat(self.right.time)
+                end_time = time.fromisoformat(self.end.time)
 
-            end = datetime.combine(right_date, right_time)
+            end = datetime.combine(end_date, end_time)
 
         return DateRange(start=start, end=end)
 
@@ -296,29 +296,29 @@ def parse_timerange(value: str, now: datetime | None = None) -> Timerange:
 
     # Special case: ".." means all (unbounded)
     if value == "..":
-        return Timerange(left=Timepoint(), right=Timepoint())
+        return Timerange(start=Timepoint(), end=Timepoint())
 
     # Split by ".."
     parts = value.split("..", maxsplit=1)
 
-    left_str = parts[0] if parts[0] else ""
-    right_str = parts[1] if len(parts) > 1 and parts[1] else ""
+    start_str = parts[0] if parts[0] else ""
+    end_str = parts[1] if len(parts) > 1 and parts[1] else ""
 
     # Parse both sides
-    left = parse_timepoint(left_str, now=now)
-    right = parse_timepoint(right_str, now=now)
+    start_tp = parse_timepoint(start_str, now=now)
+    end_tp = parse_timepoint(end_str, now=now)
 
     # Validate: reject undated in timerange
-    if left.is_undated or right.is_undated:
+    if start_tp.is_undated or end_tp.is_undated:
         raise TimelineValidationError(
             "'undated' keyword cannot be used in a timerange. "
             "Use --at undated to filter undated items, or use '..' for all dates."
         )
 
-    # Validate: left < right (reject reversed ranges)
-    _validate_range_order(left, right, now)
+    # Validate: start < end (reject reversed ranges)
+    _validate_range_order(start_tp, end_tp, now)
 
-    return Timerange(left=left, right=right)
+    return Timerange(start=start_tp, end=end_tp)
 
 
 def _normalize_date(value: str, now: datetime) -> str:
@@ -415,31 +415,38 @@ def _parse_relative_offset(value: str, now: datetime) -> Timepoint:
     return Timepoint(date=new_dt.date().isoformat(), time=new_dt.strftime("%H:%M"))
 
 
-def _validate_range_order(left: Timepoint, right: Timepoint, now: datetime) -> None:
-    """Validate that left < right (reversed ranges rejected).
+def _validate_range_order(start: Timepoint, end: Timepoint, now: datetime) -> None:
+    """Validate that start < end (reversed ranges rejected).
 
     Args:
-        left: Left timepoint.
-        right: Right timepoint.
+        start: Start timepoint.
+        end: End timepoint.
         now: Current datetime for comparison.
 
     Raises:
-        TimelineValidationError: If range is reversed (left >= right).
+        TimelineValidationError: If range is reversed (start >= end).
     """
     # Get concrete values for comparison
-    left_dt = left.to_datetime(now)
-    right_dt = right.to_datetime(now)
+    start_dt = start.to_datetime(now)
+    end_dt = end.to_datetime(now)
 
     # Empty boundaries are OK
-    if left_dt is None or right_dt is None:
+    if start_dt is None or end_dt is None:
         return
 
+    # Convert both to datetime for comparison (Bug 1 fix)
+    # This handles mixed datetime/date comparison
+    if isinstance(start_dt, date) and not isinstance(start_dt, datetime):
+        start_dt = datetime.combine(start_dt, time.min)
+    if isinstance(end_dt, date) and not isinstance(end_dt, datetime):
+        end_dt = datetime.combine(end_dt, time.min)
+
     # Compare
-    if left_dt > right_dt:
+    if start_dt > end_dt:
         raise TimelineValidationError(
-            f"Reversed time range: left ({_format_timepoint(left)}) must be before right ({_format_timepoint(right)})."
+            f"Reversed time range: start ({_format_timepoint(start)}) must be before end ({_format_timepoint(end)})."
         )
-    # left_dt == right_dt is allowed (single point range)
+    # start_dt == end_dt is allowed (single point range)
 
 
 def _format_timepoint(tp: Timepoint) -> str:
@@ -578,7 +585,7 @@ def is_datetime_in_range(dt: datetime, date_range: DateRange) -> bool:
 
 
 def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRange) -> list[tuple[str, "Todo"]]:
-    """Filter todos by date range.
+    """Filter todos by date range with precise time handling.
 
     Args:
         records: Dictionary of date -> DailyRecord
@@ -586,16 +593,51 @@ def filter_todos_by_range(records: dict[str, "DailyRecord"], date_range: DateRan
 
     Returns:
         List of (date, todo) tuples that match the range
+
+    Filtering rules (Bug 2 fix):
+        - Timed todos: Precise datetime filtering, closed interval [start, end]
+        - No-time todos: Date filtering, date must fall within [start.date(), end.date()]
     """
     results = []
+
+    # Determine the date bounds for no-time todo filtering
+    # Extract date from datetime bounds if present
+    start_date: date | None = None
+    end_date: date | None = None
+
+    if date_range.start is not None:
+        if isinstance(date_range.start, datetime):
+            start_date = date_range.start.date()
+        else:
+            start_date = date_range.start
+
+    if date_range.end is not None:
+        if isinstance(date_range.end, datetime):
+            end_date = date_range.end.date()
+        else:
+            end_date = date_range.end
+
     for date_str, record in records.items():
-        # Check if date is in range
-        if not is_date_in_range(date_str, date_range):
+        # Skip undated record (0000-00-00) - handled separately by --at undated
+        if date_str == "0000-00-00":
             continue
 
-        # Include all todos from this date
+        todo_date = date.fromisoformat(date_str)
+
         for todo in record.todos:
-            results.append((date_str, todo))
+            if todo.time is not None:
+                # Timed todo: precise datetime filtering
+                todo_dt = datetime.combine(todo_date, time.fromisoformat(todo.time))
+                if is_datetime_in_range(todo_dt, date_range):
+                    results.append((date_str, todo))
+            else:
+                # No-time todo: date filtering
+                # Check if todo_date falls within [start_date, end_date]
+                if start_date is not None and todo_date < start_date:
+                    continue
+                if end_date is not None and todo_date > end_date:
+                    continue
+                results.append((date_str, todo))
 
     return results
 

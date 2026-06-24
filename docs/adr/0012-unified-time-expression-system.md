@@ -37,12 +37,21 @@ Unified time expression parsing layer. Shared by all commands. Contains either a
 Format: `timepoint..timepoint`
 
 Expansion rules:
-- Left has date only → `dateT00:00`
-- Right has date only → `dateT23:59`
+- Start has date only → `dateT00:00`
+- End has date only → `dateT23:59`
 - Time only → Auto-fill date=today
 - Empty → Start/end boundary
 
-Constraint: `left < right` (reversed ranges rejected).
+Constraint: `start < end` (reversed ranges rejected).
+
+### Timerange Filtering Behavior
+
+When filtering items by a timerange:
+
+- **Timed items** (todos/events with time component): Precise datetime filtering using closed interval `[start, end]`. An item at `2026-06-16T14:00` is included in range `2026-06-16T11:00..2026-06-17T12:00`.
+- **No-time items** (todos without time): Date filtering based on `[start.date(), end.date()]`. A no-time todo on `2026-06-16` is included in range `2026-06-16T11:00..2026-06-17T12:00`.
+
+This distinction ensures no-time todos remain discoverable even when users specify precise time ranges.
 
 ### Command-Specific Semantics
 
