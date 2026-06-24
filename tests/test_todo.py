@@ -406,3 +406,94 @@ class TestTodoAbandon:
             assert result.returncode == 0
             # Should output: [tXXXXX] Abandoned: Old task
             assert f"[{todo_id}] Abandoned: Old task" in result.stdout
+
+
+class TestTodoListTimerangeBugs:
+    """Regression tests for Issue #87, #88, #89: Timerange filtering bugs."""
+
+    def test_timerange_mixed_datetime_and_date(self):
+        """Bug 1: 2026-06-16T11:00..2026-06-17 should not raise TypeError.
+
+        This tests that mixed datetime + date timerange comparison works.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create a timed todo
+            run_cli(["todo", "add", "afternoon task", "--at", "2026-06-16T14:00"], cwd=Path(tmpdir))
+
+            # Query with mixed datetime + date range (Bug 1 case)
+            result = run_cli(["todo", "list", "--at", "2026-06-16T11:00..2026-06-17"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+            assert "afternoon task" in result.stdout
+
+            # Also test the reverse: date + datetime
+            result2 = run_cli(["todo", "list", "--at", "2026-06-16..2026-06-17T12:00"], cwd=Path(tmpdir))
+            assert result2.returncode == 0
+            assert "afternoon task" in result2.stdout
+
+    def test_timerange_precise_datetime_filter(self):
+        """Issue #89: Precise datetime range should filter timed todos correctly.
+
+        2026-06-16T11:00..2026-06-17T12:00 should:
+        - Include todos at 2026-06-16T14:00 (within range)
+        - Exclude todos at 2026-06-16T09:00 (before start)
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+
+            # Create todos at different times on same date
+            run_cli(["todo", "add", "morning task", "--at", "2026-06-16T09:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "afternoon task", "--at", "2026-06-16T14:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "late task", "--at", "2026-06-17T11:00"], cwd=Path(tmpdir))
+
+            # Query with precise datetime range
+            result = run_cli(["todo", "list", "--at", "2026-06-16T11:00..2026-06-17T12:00"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Should include afternoon task (14:00 >= 11:00)
+            assert "afternoon task" in result.stdout
+            # Should include late task (11:00 <= 12:00)
+            assert "late task" in result.stdout
+            # Should NOT include morning task (09:00 < 11:00)
+            assert "morning task" not in result.stdout
+
+    def test_timerange_includes_no_time_todos(self):
+        """No-time todos should be included when date falls within range's date span.
+
+        2026-06-16T11:00..2026-06-17T12:00 covers dates 2026-06-16 and 2026-06-17.
+        A no-time todo on 2026-06-16 should be included.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+
+            # Create a no-time todo
+            run_cli(["todo", "add", "day-long task", "--at", "2026-06-16"], cwd=Path(tmpdir))
+
+            # Query with precise datetime range
+            result = run_cli(["todo", "list", "--at", "2026-06-16T11:00..2026-06-17T12:00"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Should include the no-time todo (date 2026-06-16 is within range's dates)
+            assert "day-long task" in result.stdout
+
+    def test_timerange_boundary_values(self):
+        """Timerange should include todos exactly at start/end boundaries.
+
+        Closed interval [start, end] means:
+        - todo at start time is included
+        - todo at end time is included
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+
+            # Create todos at exact boundaries
+            run_cli(["todo", "add", "start boundary task", "--at", "2026-06-16T12:00"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "end boundary task", "--at", "2026-06-17T09:00"], cwd=Path(tmpdir))
+
+            # Query with range matching boundaries exactly
+            result = run_cli(["todo", "list", "--at", "2026-06-16T12:00..2026-06-17T09:00"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Both boundary todos should be included (closed interval)
+            assert "start boundary task" in result.stdout
+            assert "end boundary task" in result.stdout

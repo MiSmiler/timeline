@@ -55,12 +55,15 @@ A point in time with optional components (date, time). Special keywords: `undate
 _Avoid_: Date, timestamp, moment
 
 **Timerange**:
-A range between two Timepoints: `left..right`. Expansion rules:
-- left has date only → dateT00:00
-- right has date only → dateT23:59
+A range between two Timepoints: `start..end`. Expansion rules:
+- start has date only → dateT00:00
+- end has date only → dateT23:59
 - time only → Auto-fill date=today
 - empty → Start/end boundary
-Constraint: left < right (reversed ranges rejected).
+Constraint: start < end (reversed ranges rejected).
+Filtering behavior:
+- Timed items (todos/events with time): Precise datetime match, closed interval `[start, end]`.
+- No-time items (todos without time): Date match, date must fall within `[start.date(), end.date()]`.
 _Avoid_: Period, interval, span
 
 **--at Parameter**:
