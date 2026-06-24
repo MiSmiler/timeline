@@ -1,6 +1,6 @@
 [project]
 name = "timeline-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "A CLI tool for managing daily events, todos, and notes with jsonline storage"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,3 +42,7 @@ addopts = "-v --tb=short"
 dev = [
     "ruff>=0.15.17",
 ]
+
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"

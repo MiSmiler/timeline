@@ -1,49 +1,68 @@
 # Timeline CLI
 
-基于 jsonline 存储的待办/事件/笔记管理工具。
+A todo/event/note management tool designed for AI agents, using jsonline storage.
 
-## 安装
+## Installation
 
 ```bash
-# 推荐：全局安装（隔离环境）
+# Recommended: global installation (isolated environment)
 uv tool install .
 
-# 或开发模式安装
+# Or development mode
 uv sync
-uv pip install -e .
 ```
 
-## 使用
+## Usage
 
 ```bash
-timeline-cli --help
-timeline-cli todo add "完成任务" --at today
-timeline-cli todo list --at today
+# Initialize timeline directory
+timeline-cli init
+
+# View today's diary
+timeline-cli diary today
+
+# Add a todo
+timeline-cli todo add "Review PR" --at today
+
+# Add an event
+timeline-cli event add "Meeting with team" --at todayT10:00
+
+# List todos with structured output (for agents)
+timeline-cli todo list --at today --json
+
+# Complete a todo by ID
+timeline-cli todo complete --id tabc12
 ```
 
-## 开发
+For all commands and options, run `timeline-cli --help`.
+
+## Development
 
 ```bash
-# 安装依赖
+# Install dependencies
 uv sync
 
-# 运行 CLI
+# Run CLI
 uv run timeline-cli --help
 
-# 格式化
+# Format code
 uv run ruff format
 
-# 检查
+# Lint code
 uv run ruff check
 
-# 测试
+# Run all tests
 uv run pytest
+
+# Run specific test file
+uv run pytest tests/test_todo.py -v
+
+# Run CLI from another directory
+uv run --project /path/to/timeline timeline-cli init
 ```
 
-详细说明见 [AGENTS.md](AGENTS.md)。
+## Documentation
 
-## Roadmap
-
-- todo list output有问题，markdown格式，把complete打在方括号里了。不过--json输出没问题，所以ai能用。
-- 重新设计一下todo list --json的输出，应该输出jsonline
-- 更新timeline skill的实现
+- `timeline-cli --help` - View all commands
+- [CONTEXT.md](CONTEXT.md) - Domain terminology and concepts
+- [docs/adr/](docs/adr/) - Architecture decision records
