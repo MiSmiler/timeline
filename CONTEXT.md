@@ -37,7 +37,7 @@ _Avoid_: Entry, record, row
 Logical grouping of items by date in memory. Contains events, todos, and notes arrays. Not a storage unit—items are stored as separate lines and reconstructed into Daily Records when loaded.
 
 **Undated Record**:
-Special record keyed by `0000-00-00`. Only contains Todos without time. Not allowed to have Events or Notes.
+Special record keyed by `None` (null date). Only contains Todos without date. Not allowed to have Events or Notes.
 _Avoid_: Inbox, backlog file
 
 ## Time Expressions
