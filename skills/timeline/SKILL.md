@@ -425,6 +425,12 @@ timeline-cli doctor --fix
 
 ---
 
+## 遇到问题时
+
+如果在使用 timeline-cli 过程中遇到 **bug 或设计问题**（非你自己的参数错误），可以使用 `/report-timeline-cli-issues` skill 向 MiSmiler/timeline 仓库报告 issue。提交前必须与用户确认。
+
+---
+
 ## 其他命令
 
 ### init
