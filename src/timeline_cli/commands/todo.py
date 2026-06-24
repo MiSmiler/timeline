@@ -127,13 +127,7 @@ def handle_todo_list(args) -> None:
             # Timepoint: expand to full day range for list commands
             # (date-only -> dateT00:00..dateT23:59, time-only -> exact match today)
             tp = time_expr.timepoint
-            if tp.is_undated:
-                # Handle undated timepoint (legacy path, should go through timerange now)
-                for date_str, record in timeline.records.items():
-                    if date_str is None:
-                        for todo in record.todos:
-                            todos_with_dates.append((date_str, todo))
-            elif tp.time is None:
+            if tp.time is None:
                 # Date-only: expand to full day
                 from datetime import time
 

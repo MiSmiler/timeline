@@ -26,7 +26,7 @@ def validate_date(date: str | None) -> str | None:
         return None
     if not DATE_PATTERN.match(date):
         raise TimelineInternalError(
-            f"Invalid date format: '{date}'. Expected YYYY-MM-DD or null. Run 'timeline-cli doctor --fix' to repair."
+            f"Invalid date format: '{date}'. Expected YYYY-MM-DD or null. Run 'timeline-cli doctor' to diagnose."
         )
     return date
 

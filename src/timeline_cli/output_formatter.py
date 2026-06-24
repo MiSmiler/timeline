@@ -104,7 +104,7 @@ def format_todos_markdown(todos: list[tuple[str, "Todo"]], show_id: bool = False
         groups[date].append(todo)
 
     lines = []
-    for date in sorted(groups.keys(), key=lambda d: (d is None, d or "")):
+    for date in groups.keys():  # dict is already ordered from storage
         # Use "Undated" for null date
         header = "# Undated" if date is None else f"# {date}"
         lines.append(header)
