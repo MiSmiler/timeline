@@ -340,6 +340,22 @@ class TestTimerangeParsing:
         assert dr.end.hour == 15
         assert dr.end.minute == 13
 
+    def test_parse_timerange_now_to_yesterday_rejected(self):
+        """parse_timerange("now..yesterday") -> rejected (reversed range)"""
+        now = datetime(2026, 6, 25, 15, 13)
+        with pytest.raises(TimelineValidationError) as exc_info:
+            parse_timerange("now..yesterday", now=now)
+        error_msg = str(exc_info.value)
+        assert "Reversed" in error_msg
+
+    def test_parse_timerange_tomorrow_to_now_rejected(self):
+        """parse_timerange("tomorrow..now") -> rejected (reversed range)"""
+        now = datetime(2026, 6, 25, 15, 13)
+        with pytest.raises(TimelineValidationError) as exc_info:
+            parse_timerange("tomorrow..now", now=now)
+        error_msg = str(exc_info.value)
+        assert "Reversed" in error_msg
+
 
 class TestTimerangeExpansion:
     """Tests for Timerange.expand_for_query() method."""

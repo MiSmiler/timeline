@@ -458,7 +458,8 @@ def _validate_range_order(tr: Timerange, now: datetime) -> None:
     # Use expand_for_query to apply correct expansion rules
     dr = tr.expand_for_query(now=now)
 
-    # Empty boundaries are OK
+    # Empty boundaries mean unbounded range (e.g., "..today" or "yesterday..")
+    # Cannot validate order on unbounded ranges, so skip validation
     if dr.start is None or dr.end is None:
         return
 
