@@ -308,6 +308,38 @@ class TestTimerangeParsing:
         assert tr.end.date == "2026-06-23"
         assert tr.end.time == "09:00"
 
+    def test_parse_timerange_now_to_today_allowed(self):
+        """parse_timerange("now..today") -> allowed (now < todayT23:59)"""
+        now = datetime(2026, 6, 25, 15, 13)  # Current time 15:13
+        tr = parse_timerange("now..today", now=now)
+        assert tr.start.date == "2026-06-25"
+        assert tr.start.time == "15:13"
+        assert tr.end.date == "2026-06-25"
+        assert tr.end.time is None  # Will be expanded to T23:59 during query
+
+        # Verify expansion
+        dr = tr.expand_for_query(now=now)
+        assert dr.start.hour == 15
+        assert dr.start.minute == 13
+        assert dr.end.hour == 23
+        assert dr.end.minute == 59
+
+    def test_parse_timerange_today_to_now_allowed(self):
+        """parse_timerange("today..now") -> allowed (todayT00:00 < now)"""
+        now = datetime(2026, 6, 25, 15, 13)  # Current time 15:13
+        tr = parse_timerange("today..now", now=now)
+        assert tr.start.date == "2026-06-25"
+        assert tr.start.time is None  # Will be expanded to T00:00 during query
+        assert tr.end.date == "2026-06-25"
+        assert tr.end.time == "15:13"
+
+        # Verify expansion
+        dr = tr.expand_for_query(now=now)
+        assert dr.start.hour == 0
+        assert dr.start.minute == 0
+        assert dr.end.hour == 15
+        assert dr.end.minute == 13
+
 
 class TestTimerangeExpansion:
     """Tests for Timerange.expand_for_query() method."""
