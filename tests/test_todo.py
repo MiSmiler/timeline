@@ -632,3 +632,36 @@ class TestIssue94Regression:
             # Verify all have time=None
             for todo in todos:
                 assert todo["time"] is None
+
+    def test_at_date_range_excludes_undated_todos(self):
+        """--at with concrete date/range should NOT include undated todos (only default range includes them)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create dated and undated pending todos
+            run_cli(["todo", "add", "dated task", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "undated task", "--at", "undated"], cwd=Path(tmpdir))
+
+            # Query with specific date (Timepoint -> expands to Timerange)
+            result = run_cli(["todo", "list", "--at", "2026-06-16", "--json"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Parse JSON output
+            lines = [line for line in result.stdout.split("\n") if line]
+            todos = [json.loads(line) for line in lines]
+
+            # Should only have dated task
+            assert len(todos) == 1
+            assert todos[0]["text"] == "dated task"
+            assert todos[0]["date"] == "2026-06-16"
+
+            # Query with explicit date range
+            result2 = run_cli(["todo", "list", "--at", "yesterday..today", "--json"], cwd=Path(tmpdir))
+            assert result2.returncode == 0
+
+            lines2 = [line for line in result2.stdout.split("\n") if line]
+            todos2 = [json.loads(line) for line in lines2]
+
+            # Should NOT include undated task (ADR-0013: excluded from concrete Timerange)
+            assert all(t["date"] is not None for t in todos2)
+            texts2 = [t["text"] for t in todos2]
+            assert "undated task" not in texts2
