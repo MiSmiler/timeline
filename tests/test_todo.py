@@ -497,3 +497,138 @@ class TestTodoListTimerangeBugs:
             # Both boundary todos should be included (closed interval)
             assert "start boundary task" in result.stdout
             assert "end boundary task" in result.stdout
+
+
+class TestIssue94Regression:
+    """Regression tests for Issue #94: --status pending should include undated todos."""
+
+    def test_status_pending_includes_undated_todos(self):
+        """--status pending should return both dated and undated pending todos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create dated and undated pending todos
+            run_cli(["todo", "add", "dated pending task", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "undated pending task", "--at", "undated"], cwd=Path(tmpdir))
+
+            # Query with --status pending (no --at)
+            result = run_cli(["todo", "list", "--status", "pending", "--json"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Parse JSON output
+            lines = [line for line in result.stdout.split("\n") if line]
+            todos = [json.loads(line) for line in lines]
+
+            # Should have 2 todos
+            assert len(todos) == 2
+
+            # Check that both are included
+            texts = [t["text"] for t in todos]
+            assert "dated pending task" in texts
+            assert "undated pending task" in texts
+
+            # Verify one has date, one doesn't
+            dated = [t for t in todos if t["date"] is not None]
+            undated = [t for t in todos if t["date"] is None]
+            assert len(dated) == 1
+            assert len(undated) == 1
+
+    def test_status_completed_includes_undated_todos(self):
+        """--status completed should include undated completed todos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create and complete an undated todo
+            result_add = run_cli(["todo", "add", "undated done", "--at", "undated"], cwd=Path(tmpdir))
+            match = re.search(r"\[(t[a-z0-9]+)\]", result_add.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+            run_cli(["todo", "complete", "--id", todo_id], cwd=Path(tmpdir))
+
+            # Query with --status completed (no --at)
+            result = run_cli(["todo", "list", "--status", "completed", "--json"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Parse JSON output
+            lines = [line for line in result.stdout.split("\n") if line]
+            todos = [json.loads(line) for line in lines]
+
+            # Should have 1 completed undated todo
+            assert len(todos) == 1
+            assert todos[0]["text"] == "undated done"
+            assert todos[0]["status"] == "completed"
+            assert todos[0]["date"] is None
+
+    def test_status_abandoned_includes_undated_todos(self):
+        """--status abandoned should include undated abandoned todos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create and abandon an undated todo
+            result_add = run_cli(["todo", "add", "undated abandoned", "--at", "undated"], cwd=Path(tmpdir))
+            match = re.search(r"\[(t[a-z0-9]+)\]", result_add.stdout)
+            assert match is not None
+            todo_id = match.group(1)
+            run_cli(["todo", "abandon", "--id", todo_id], cwd=Path(tmpdir))
+
+            # Query with --status abandoned (no --at)
+            result = run_cli(["todo", "list", "--status", "abandoned", "--json"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Parse JSON output
+            lines = [line for line in result.stdout.split("\n") if line]
+            todos = [json.loads(line) for line in lines]
+
+            # Should have 1 abandoned undated todo
+            assert len(todos) == 1
+            assert todos[0]["text"] == "undated abandoned"
+            assert todos[0]["status"] == "abandoned"
+            assert todos[0]["date"] is None
+
+    def test_contains_includes_undated_todos(self):
+        """--contains should include undated todos in default range."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create undated todo with keyword
+            run_cli(["todo", "add", "someday meeting", "--at", "undated"], cwd=Path(tmpdir))
+            run_cli(["todo", "add", "other task", "--at", "undated"], cwd=Path(tmpdir))
+
+            # Query with --contains "meeting" (no --at)
+            result = run_cli(["todo", "list", "--contains", "meeting", "--json"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Parse JSON output
+            lines = [line for line in result.stdout.split("\n") if line]
+            todos = [json.loads(line) for line in lines]
+
+            # Should have 1 todo matching the keyword
+            assert len(todos) == 1
+            assert todos[0]["text"] == "someday meeting"
+            assert todos[0]["date"] is None
+
+    def test_no_time_includes_undated_todos(self):
+        """--no-time should include both undated todos and dated no-time todos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_cli(["init"], cwd=Path(tmpdir))
+            # Create undated todo (date=null, time=null)
+            run_cli(["todo", "add", "undated task", "--at", "undated"], cwd=Path(tmpdir))
+            # Create dated no-time todo (date=具体日期, time=null)
+            run_cli(["todo", "add", "dated no-time task", "--at", "2026-06-16"], cwd=Path(tmpdir))
+            # Create timed todo (should not be included)
+            run_cli(["todo", "add", "timed task", "--at", "2026-06-16T09:00"], cwd=Path(tmpdir))
+
+            # Query with --no-time (no --at)
+            result = run_cli(["todo", "list", "--no-time", "--json"], cwd=Path(tmpdir))
+            assert result.returncode == 0
+
+            # Parse JSON output
+            lines = [line for line in result.stdout.split("\n") if line]
+            todos = [json.loads(line) for line in lines]
+
+            # Should have 2 todos (undated + dated no-time)
+            assert len(todos) == 2
+            texts = [t["text"] for t in todos]
+            assert "undated task" in texts
+            assert "dated no-time task" in texts
+            assert "timed task" not in texts
+
+            # Verify all have time=None
+            for todo in todos:
+                assert todo["time"] is None

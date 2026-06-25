@@ -151,8 +151,9 @@ def handle_todo_list(args) -> None:
                         if todo.time == target_time:
                             todos_with_dates.append((target_date, todo))
     else:
-        # No --at: default to all dates (..)
-        date_range = DateRange()
+        # No --at: default to .. per ADR-0012 rule #2
+        time_expr = TimeExpr.parse("..")
+        date_range = time_expr.timerange.expand_for_query()
         todos_with_dates = filter_todos_by_range(timeline.records, date_range)
 
     # Apply --no-time filter (Issue #82)
