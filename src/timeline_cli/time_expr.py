@@ -337,10 +337,14 @@ def parse_timerange(value: str, now: datetime | None = None) -> Timerange:
             "Use --at undated to filter undated items, or use '..' for all dates."
         )
 
-    # Validate: start < end (reject reversed ranges)
-    _validate_range_order(start_tp, end_tp, now)
+    # Create Timerange first
+    tr = Timerange(start=start_tp, end=end_tp)
 
-    return Timerange(start=start_tp, end=end_tp)
+    # Validate: start < end (reject reversed ranges)
+    # Use expand_for_query to apply correct expansion rules
+    _validate_range_order(tr, now)
+
+    return tr
 
 
 def _normalize_date(value: str, now: datetime) -> str:
@@ -437,53 +441,48 @@ def _parse_relative_offset(value: str, now: datetime) -> Timepoint:
     return Timepoint(date=new_dt.date().isoformat(), time=new_dt.strftime("%H:%M"))
 
 
-def _validate_range_order(start: Timepoint, end: Timepoint, now: datetime) -> None:
+def _validate_range_order(tr: Timerange, now: datetime) -> None:
     """Validate that start < end (reversed ranges rejected).
 
+    Uses expand_for_query() to apply correct expansion rules:
+    - Start date-only -> dateT00:00
+    - End date-only -> dateT23:59
+
     Args:
-        start: Start timepoint.
-        end: End timepoint.
-        now: Current datetime for comparison.
+        tr: Timerange to validate.
+        now: Current datetime for expansion.
 
     Raises:
         TimelineValidationError: If range is reversed (start >= end).
     """
-    # Get concrete values for comparison
-    start_dt = start.to_datetime(now)
-    end_dt = end.to_datetime(now)
+    # Use expand_for_query to apply correct expansion rules
+    dr = tr.expand_for_query(now=now)
 
-    # Empty boundaries are OK
-    if start_dt is None or end_dt is None:
+    # Empty boundaries mean unbounded range (e.g., "..today" or "yesterday..")
+    # Cannot validate order on unbounded ranges, so skip validation
+    if dr.start is None or dr.end is None:
         return
 
-    # Convert both to datetime for comparison (Bug 1 fix)
-    # This handles mixed datetime/date comparison
-    if isinstance(start_dt, date) and not isinstance(start_dt, datetime):
-        start_dt = datetime.combine(start_dt, time.min)
-    if isinstance(end_dt, date) and not isinstance(end_dt, datetime):
-        end_dt = datetime.combine(end_dt, time.min)
-
-    # Compare
-    if start_dt > end_dt:
+    # Compare expanded datetime values
+    if dr.start > dr.end:
+        start_str = _format_datetime(dr.start)
+        end_str = _format_datetime(dr.end)
         raise TimelineValidationError(
-            f"Reversed time range: start ({_format_timepoint(start)}) must be before end ({_format_timepoint(end)})."
+            f"Reversed time range: start ({start_str}) must be before end ({end_str})."
         )
-    # start_dt == end_dt is allowed (single point range)
+    # start == end is allowed (single point range)
 
 
-def _format_timepoint(tp: Timepoint) -> str:
-    """Format timepoint for display in error messages."""
-    if tp.is_undated:
-        return "undated"
-    if tp.date is None and tp.time is None:
-        return "(empty)"
-    if tp.date and tp.time:
-        return f"{tp.date}T{tp.time}"
-    if tp.date:
-        return tp.date
-    if tp.time:
-        return f"(today)T{tp.time}"
-    return "(unknown)"
+def _format_datetime(dt: datetime) -> str:
+    """Format datetime for display in error messages.
+
+    Args:
+        dt: datetime object.
+
+    Returns:
+        String in YYYY-MM-DDTHH:MM format.
+    """
+    return dt.strftime("%Y-%m-%dT%H:%M")
 
 
 # =============================================================================
