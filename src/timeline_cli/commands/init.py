@@ -1,10 +1,14 @@
 """Init command implementation."""
 
+import json
 from pathlib import Path
 
 from timeline_cli.errors import TimelineValidationError
-from timeline_cli.models import Timeline
-from timeline_cli.storage import DEFAULT_STORAGE_FILE, TIMELINE_DIR, write_timeline
+
+# Storage constants
+TIMELINE_DIR = ".timeline"
+DATA_FILE = "data.jsonl"
+DEFAULT_STORAGE_FILE = Path(TIMELINE_DIR) / DATA_FILE
 
 
 def handle_init(args) -> None:
@@ -15,14 +19,13 @@ def handle_init(args) -> None:
     Args:
         args: CLI arguments
     """
-    timeline_dir = Path(TIMELINE_DIR)
     data_file = Path(DEFAULT_STORAGE_FILE)
 
     if data_file.exists():
         raise TimelineValidationError(f"Timeline already initialized. {data_file} exists.")
 
     # Create directory and data file
-    timeline_dir.mkdir(exist_ok=True)
-    timeline = Timeline(schema_version=1)
-    write_timeline(timeline, data_file)
+    data_file.parent.mkdir(exist_ok=True)
+    header = json.dumps({"schema_version": 2}, ensure_ascii=False)
+    data_file.write_text(header + "\n")
     print(f"Created {data_file}")
