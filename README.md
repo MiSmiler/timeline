@@ -14,28 +14,6 @@ uv sync
 
 ## Usage
 
-```bash
-# Initialize timeline directory
-timeline-cli init
-
-# View today's diary
-timeline-cli diary today
-
-# Add a todo
-timeline-cli todo add "Review PR" --at today
-
-# Add an event
-timeline-cli event add "Meeting with team" --at todayT10:00
-
-# List todos with structured output (for agents)
-timeline-cli todo list --at today --json
-
-# Complete a todo by ID
-timeline-cli todo complete --id tabc12
-```
-
-For all commands and options, run `timeline-cli --help`.
-
 ## Development
 
 ```bash
