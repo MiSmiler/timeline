@@ -4,11 +4,7 @@ import json
 from pathlib import Path
 
 from timeline_cli.errors import TimelineValidationError
-
-# Storage constants
-TIMELINE_DIR = ".timeline"
-DATA_FILE = "data.jsonl"
-DEFAULT_STORAGE_FILE = Path(TIMELINE_DIR) / DATA_FILE
+from timeline_cli.storage import DEFAULT_STORAGE_FILE
 
 
 def handle_init(args, data_file: Path | None = None) -> None:
