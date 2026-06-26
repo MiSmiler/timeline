@@ -1,8 +1,11 @@
-"""Custom exceptions for timeline-cli."""
+"""Custom exceptions for timeline-cli.
+
+Exit code convention: 1 = user error, 2 = internal bug.
+"""
 
 
 class TimelineError(Exception):
-    """Base error for timeline-cli."""
+    """Base error for timeline-cli (exit_code 1 = user error)."""
 
     exit_code = 1
 
@@ -22,6 +25,6 @@ class TimelineValidationError(TimelineError):
 
 
 class TimelineInternalError(TimelineError):
-    """Internal/unexpected error."""
+    """Internal error (exit_code 2 = bug, should be reported)."""
 
     exit_code = 2
