@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from timeline_cli.errors import TimelineValidationError
+from timeline_cli.errors import TimelineInternalError, TimelineValidationError
 
 
 def _parse_date_string(s: str) -> date:
@@ -33,13 +33,40 @@ def _parse_date_string(s: str) -> date:
         return date.today()
     if s == "yesterday":
         return date.today() - timedelta(days=1)
-    if s == "now":
-        return date.today()
     try:
         return date.fromisoformat(s)
-    except (ValueError, TypeError):
+    except ValueError as e:
         raise TimelineValidationError(
-            f"Invalid date expression: {s!r}. Expected 'today', 'yesterday', 'now', or YYYY-MM-DD."
+            f"Invalid date expression: {s!r}: {e}"
+        ) from None
+    except TypeError:
+        raise TimelineInternalError(
+            "Internal error: unexpected type in date parser"
+        ) from None
+
+
+def _parse_time(s: str) -> time:
+    """Parse a time string in ``HH:MM`` format.
+
+    Args:
+        s: Time string like ``"14:00"``.
+
+    Returns:
+        The parsed :class:`datetime.time`.
+
+    Raises:
+        TimelineValidationError: If the time format is invalid.
+    """
+    s = s.strip()
+    try:
+        return time.fromisoformat(s)
+    except ValueError as e:
+        raise TimelineValidationError(
+            f"Invalid time: {e}. Expected HH:MM (e.g., 14:00)."
+        ) from None
+    except TypeError:
+        raise TimelineInternalError(
+            "Internal error: unexpected type in time parser"
         ) from None
 
 
@@ -83,6 +110,11 @@ class TimePoint:
         if not s:
             raise TimelineValidationError("Time expression must not be empty.")
 
+        # Bare "now" — current date and current time
+        if s == "now":
+            dt = datetime.now()
+            return cls(date=dt.date(), time=dt.time())
+
         # Split on 'T' to separate date and time parts
         if "T" in s:
             date_part, _, time_part = s.partition("T")
@@ -92,41 +124,10 @@ class TimePoint:
             date_part = s
             time_part = None
 
-        # Resolve date part
-        if date_part == "now":
-            dt = datetime.now()
-            parsed_date = dt.date()
-            parsed_time = dt.time() if time_part is None else _parse_time(time_part)
-        elif date_part == "today":
-            parsed_date = date.today()
-            parsed_time = _parse_time(time_part) if time_part else None
-        elif date_part == "yesterday":
-            parsed_date = date.today() - timedelta(days=1)
-            parsed_time = _parse_time(time_part) if time_part else None
-        else:
-            parsed_date = _parse_date_string(date_part)
-            parsed_time = _parse_time(time_part) if time_part else None
+        parsed_date = _parse_date_string(date_part)
+        parsed_time = _parse_time(time_part) if time_part else None
 
         return cls(date=parsed_date, time=parsed_time)
-
-
-def _parse_time(s: str) -> time:
-    """Parse a time string in ``HH:MM`` format.
-
-    Args:
-        s: Time string like ``"14:00"``.
-
-    Returns:
-        The parsed :class:`datetime.time`.
-
-    Raises:
-        TimelineValidationError: If the time format is invalid.
-    """
-    s = s.strip()
-    try:
-        return time.fromisoformat(s)
-    except (ValueError, TypeError):
-        raise TimelineValidationError(f"Invalid time format: {s!r}. Expected HH:MM.") from None
 
 
 @dataclass(frozen=True)
@@ -163,8 +164,8 @@ class DateRange:
             A new :class:`DateRange` with resolved start and end dates.
 
         Raises:
-            TimelineValidationError: If the expression is empty or contains
-                invalid date strings.
+            TimelineValidationError: If the expression is empty, contains
+                invalid date strings, or has a reversed range.
         """
         s = s.strip()
         if not s:
@@ -181,5 +182,10 @@ class DateRange:
             parsed = _parse_date_string(s)
             start = parsed
             end = parsed
+
+        if start is not None and end is not None and start > end:
+            raise TimelineValidationError(
+                f"Invalid date range: start {start} is after end {end}."
+            )
 
         return cls(start=start, end=end)

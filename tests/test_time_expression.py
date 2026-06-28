@@ -74,13 +74,14 @@ class TestTimePointParse:
 
     # -- Additional coverage ------------------------------------------------
 
-    def test_now_with_explicit_time(self) -> None:
-        """``nowT14:00`` treats ``now`` as the date part, uses explicit time."""
-        with patch("timeline_cli.time_expression.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 6, 27, 15, 30, 0)
-            tp = TimePoint.parse("nowT14:00")
+    def test_yesterday_with_time(self) -> None:
+        """``yesterdayT14:00`` returns yesterday's date and 14:00."""
+        with patch("timeline_cli.time_expression.date") as mock_date:
+            mock_date.today.return_value = date(2026, 6, 27)
+            mock_date.fromisoformat.side_effect = date.fromisoformat
+            tp = TimePoint.parse("yesterdayT14:00")
 
-        assert tp.date == date(2026, 6, 27)
+        assert tp.date == date(2026, 6, 26)
         assert tp.time == time(14, 0)
 
     def test_strips_whitespace(self) -> None:
@@ -122,13 +123,18 @@ class TestTimePointParse:
 
     def test_invalid_time_raises(self) -> None:
         """An invalid time format raises TimelineValidationError."""
-        with pytest.raises(TimelineValidationError, match="Invalid time format"):
+        with pytest.raises(TimelineValidationError, match="Invalid time"):
             TimePoint.parse("todayT25:00")
 
     def test_garbage_string_raises(self) -> None:
         """A completely unrecognisable string raises TimelineValidationError."""
-        with pytest.raises(TimelineValidationError):
+        with pytest.raises(TimelineValidationError, match="Invalid date expression"):
             TimePoint.parse("not-a-date-or-time")
+
+    def test_now_with_explicit_time_raises(self) -> None:
+        """``nowT14:00`` is rejected — ``now`` is a datetime, not a date part."""
+        with pytest.raises(TimelineValidationError, match="Invalid date expression"):
+            TimePoint.parse("nowT14:00")
 
     # -- Immutability -------------------------------------------------------
 
@@ -189,6 +195,26 @@ class TestDateRangeParse:
 
     # -- Additional coverage ------------------------------------------------
 
+    def test_range_open_end_relative(self) -> None:
+        """``today..`` returns open-end range starting from today."""
+        with patch("timeline_cli.time_expression.date") as mock_date:
+            mock_date.today.return_value = date(2026, 6, 27)
+            mock_date.fromisoformat.side_effect = date.fromisoformat
+            dr = DateRange.parse("today..")
+
+        assert dr.start == date(2026, 6, 27)
+        assert dr.end is None
+
+    def test_range_open_start_relative(self) -> None:
+        """``..yesterday`` returns open-start range ending at yesterday."""
+        with patch("timeline_cli.time_expression.date") as mock_date:
+            mock_date.today.return_value = date(2026, 6, 27)
+            mock_date.fromisoformat.side_effect = date.fromisoformat
+            dr = DateRange.parse("..yesterday")
+
+        assert dr.start is None
+        assert dr.end == date(2026, 6, 26)
+
     def test_single_date_yesterday(self) -> None:
         """``yesterday`` returns start = end = yesterday's date."""
         with patch("timeline_cli.time_expression.date") as mock_date:
@@ -205,26 +231,6 @@ class TestDateRangeParse:
 
         assert dr.start == date(2026, 6, 26)
         assert dr.end == date(2026, 6, 26)
-
-    def test_single_date_now(self) -> None:
-        """``now`` resolves to today's date for both start and end."""
-        with patch("timeline_cli.time_expression.date") as mock_date:
-            mock_date.today.return_value = date(2026, 6, 27)
-            mock_date.fromisoformat.side_effect = date.fromisoformat
-            dr = DateRange.parse("now")
-
-        assert dr.start == date(2026, 6, 27)
-        assert dr.end == date(2026, 6, 27)
-
-    def test_reversed_range_parses(self) -> None:
-        """A reversed range (end before start) still parses successfully.
-
-        Order validation belongs at the query layer, not the parsing layer.
-        """
-        dr = DateRange.parse("2026-06-26..2026-06-20")
-
-        assert dr.start == date(2026, 6, 26)
-        assert dr.end == date(2026, 6, 20)
 
     def test_range_strips_whitespace(self) -> None:
         """Whitespace around ``..`` is ignored."""
@@ -257,6 +263,16 @@ class TestDateRangeParse:
         """An unrecognised single-date expression raises TimelineValidationError."""
         with pytest.raises(TimelineValidationError, match="Invalid date expression"):
             DateRange.parse("tomorrow")
+
+    def test_single_date_now_raises(self) -> None:
+        """``now`` is rejected — it is a datetime expression, not a date."""
+        with pytest.raises(TimelineValidationError, match="Invalid date expression"):
+            DateRange.parse("now")
+
+    def test_reversed_range_raises(self) -> None:
+        """A reversed range (end before start) raises TimelineValidationError."""
+        with pytest.raises(TimelineValidationError, match="start.*after.*end"):
+            DateRange.parse("2026-06-26..2026-06-20")
 
     # -- Immutability -------------------------------------------------------
 
