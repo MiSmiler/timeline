@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from timeline_cli.errors import TimelineFileNotFoundError, TimelineValidationError
+from timeline_cli.errors import TimelineError, TimelineFileNotFoundError, TimelineValidationError
 from timeline_cli.models import Event, Note
 from timeline_cli.storage import find_by_id, next_id, read_timeline, write_timeline
 
@@ -100,6 +100,14 @@ class TestReadTimeline:
         with pytest.raises(TimelineValidationError, match="Invalid JSON in header"):
             read_timeline(data_file)
 
+    def test_header_is_not_a_dict(self, tmp_path: Path) -> None:
+        """It raises TimelineValidationError when header is valid JSON but not an object."""
+        data_file = tmp_path / "data.jsonl"
+        data_file.write_text("42\n")
+
+        with pytest.raises(TimelineValidationError, match="Header must be a JSON object"):
+            read_timeline(data_file)
+
     def test_unknown_type(self, tmp_path: Path) -> None:
         """It raises TimelineValidationError for unknown type discriminators."""
         data_file = tmp_path / "data.jsonl"
@@ -113,13 +121,21 @@ class TestReadTimeline:
         data_file = tmp_path / "data.jsonl"
         data_file.write_text(f'{self.VALID_HEADER}\n{{"id": 1, "text": "no type"}}\n')
 
-        with pytest.raises(TimelineValidationError, match="Unknown type 'None' on line 2"):
+        with pytest.raises(TimelineValidationError, match="Missing 'type' field on line 2"):
             read_timeline(data_file)
 
     def test_missing_required_event_field(self, tmp_path: Path) -> None:
         """It raises TimelineValidationError when an event is missing a required field."""
         data_file = tmp_path / "data.jsonl"
         data_file.write_text(f'{self.VALID_HEADER}\n{{"type": "event", "id": 1, "text": "no date"}}\n')
+
+        with pytest.raises(TimelineValidationError, match="Missing field"):
+            read_timeline(data_file)
+
+    def test_missing_required_note_field(self, tmp_path: Path) -> None:
+        """It raises TimelineValidationError when a note is missing a required field."""
+        data_file = tmp_path / "data.jsonl"
+        data_file.write_text(f'{self.VALID_HEADER}\n{{"type": "note", "id": 1, "date": "2026-06-26"}}\n')
 
         with pytest.raises(TimelineValidationError, match="Missing field"):
             read_timeline(data_file)
@@ -165,15 +181,6 @@ class TestWriteTimeline:
 
         assert data_file.read_text() == '{"schema_version": 2}\n'
 
-    def test_creates_parent_directories(self, tmp_path: Path) -> None:
-        """It creates parent directories if they don't exist."""
-        data_file = tmp_path / "deep" / "nested" / "data.jsonl"
-        header = {"schema_version": 2}
-
-        write_timeline(data_file, header, [])
-
-        assert data_file.exists()
-
     def test_overwrites_existing_file(self, tmp_path: Path) -> None:
         """It overwrites an existing file completely."""
         data_file = tmp_path / "data.jsonl"
@@ -183,9 +190,27 @@ class TestWriteTimeline:
 
         write_timeline(data_file, header, items)
 
-        content = data_file.read_text()
-        assert '"id": 42' in content
-        assert "new data" in content
+        assert data_file.read_text() == (
+            '{"schema_version": 2}\n'
+            '{"type": "event", "id": 42, "date": "2026-06-26", "time": "10:00", "text": "new data"}\n'
+        )
+
+    def test_unicode_round_trip(self, tmp_path: Path) -> None:
+        """Emoji, CJK, and special characters survive write → read intact."""
+        data_file = tmp_path / "data.jsonl"
+        header = {"schema_version": 2}
+        items = [
+            Event(id=1, date="2026-06-26", time="14:00", text="🎉 launch party"),
+            Note(id=2, date="2026-06-26", text="中文笔记\n💡 アイデア — café résumé"),
+        ]
+
+        write_timeline(data_file, header, items)
+        read_header, read_items = read_timeline(data_file)
+
+        assert read_header == header
+        assert read_items == items
+        assert read_items[0].text == "🎉 launch party"
+        assert read_items[1].text == "中文笔记\n💡 アイデア — café résumé"
 
     def test_round_trip(self, tmp_path: Path) -> None:
         """A file written by write_timeline is readable by read_timeline."""
@@ -201,6 +226,20 @@ class TestWriteTimeline:
 
         assert read_header == header
         assert read_items == items
+
+    def test_missing_schema_version_raises(self, tmp_path: Path) -> None:
+        """It raises TimelineValidationError when header is missing schema_version."""
+        data_file = tmp_path / "data.jsonl"
+
+        with pytest.raises(TimelineValidationError, match="Header must contain schema_version"):
+            write_timeline(data_file, {}, [])
+
+    def test_missing_parent_directory_raises(self, tmp_path: Path) -> None:
+        """It raises TimelineError when the parent directory does not exist."""
+        data_file = tmp_path / "nonexistent" / "data.jsonl"
+
+        with pytest.raises(TimelineError, match="Cannot write"):
+            write_timeline(data_file, {"schema_version": 2}, [])
 
 
 class TestFindById:
@@ -255,6 +294,15 @@ class TestFindById:
     def test_empty_list_returns_none(self) -> None:
         """It returns None for an empty items list."""
         assert find_by_id([], "event", 1) is None
+
+    def test_invalid_type_filter_raises(self) -> None:
+        """It raises ValueError for an unknown type discriminator."""
+        with pytest.raises(ValueError, match="Unknown type filter"):
+            find_by_id([], "todo", 1)
+
+        # Also reject the wrong case ("event" not "Event")
+        with pytest.raises(ValueError, match="Unknown type filter"):
+            find_by_id([], "Event", 5)
 
     def test_finds_first_match_when_duplicate_ids(self) -> None:
         """It returns the first match when duplicate IDs exist (defensive)."""
