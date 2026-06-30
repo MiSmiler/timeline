@@ -8,11 +8,13 @@ Reads and writes .timeline/data.jsonl using a JSONL format:
 
 import json
 import os
+import re
 from collections.abc import Sequence
 from pathlib import Path
 
 from timeline_cli.errors import TimelineError, TimelineFileNotFoundError, TimelineValidationError
-from timeline_cli.models import Event, Note
+from timeline_cli.models import Event, Note, validate_event_timepoint, validate_note_timepoint
+from timeline_cli.time_expression import DateRange, TimePoint
 
 # Storage path constants
 TIMELINE_DIR = ".timeline"
@@ -44,7 +46,7 @@ def read_timeline(path: str | Path) -> tuple[dict, Sequence[Event | Note]]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except FileNotFoundError:
-        raise TimelineFileNotFoundError(str(path))
+        raise TimelineFileNotFoundError(str(path)) from None
     except (OSError, UnicodeDecodeError) as exc:
         raise TimelineError(f"Cannot read {path}") from exc
 
@@ -174,3 +176,266 @@ def next_id(items: Sequence[Event | Note]) -> int:
     if not items:
         return 1
     return max(item.id for item in items) + 1
+
+
+# ---------------------------------------------------------------------------
+# Path helpers
+# ---------------------------------------------------------------------------
+
+_ID_RE = re.compile(r"^([en])(\d+)$")
+
+
+def resolve_data_file(base_dir: str | Path | None = None) -> Path:
+    """Resolve the path to .timeline/data.jsonl.
+
+    Args:
+        base_dir: Directory to resolve from. Defaults to the current working directory.
+
+    Returns:
+        The absolute path to the data.jsonl file.
+    """
+    if base_dir is None:
+        base_dir = Path.cwd()
+    return (Path(base_dir) / TIMELINE_DIR / DATA_FILE).resolve()
+
+
+def parse_id(raw: str, expected_type: str) -> int:
+    """Parse a user-facing ID string like ``"e1"`` or ``"n42"``.
+
+    Args:
+        raw: The raw ID string (e.g. ``"e1"``).
+        expected_type: The expected type prefix (``"event"`` or ``"note"``).
+
+    Returns:
+        The integer id.
+
+    Raises:
+        TimelineValidationError: If the format is invalid or the prefix
+            does not match the expected type.
+    """
+    m = _ID_RE.match(raw)
+    if not m:
+        raise TimelineValidationError(f"Invalid ID format: {raw!r}. Expected format: {expected_type[0]}<number>")
+    prefix = m.group(1)
+    expected_prefix = expected_type[0]
+    if prefix != expected_prefix:
+        raise TimelineValidationError(f"Expected {expected_prefix}-prefixed ID for {expected_type}, got {raw!r}")
+    return int(m.group(2))
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _find_index(items: Sequence[Event | Note], type_: str, id_: int) -> int:
+    """Find the list index of an item by type and id.
+
+    Args:
+        items: List of timeline items.
+        type_: ``"event"`` or ``"note"``.
+        id_: The item id.
+
+    Returns:
+        The list index.
+
+    Raises:
+        TimelineValidationError: If no matching item is found.
+    """
+    expected_cls = _TYPE_MAP[type_]
+    for i, item in enumerate(items):
+        if isinstance(item, expected_cls) and item.id == id_:
+            return i
+    raise TimelineValidationError(f"{type_.capitalize()} not found: {type_[0]}{id_}")
+
+
+# ---------------------------------------------------------------------------
+# Add helpers
+# ---------------------------------------------------------------------------
+
+
+def add_event(items: list[Event | Note], text: str, tp: TimePoint) -> Event:
+    """Create an Event, allocate next ID, and append to items.
+
+    Args:
+        items: Mutable list of timeline items (modified in place).
+        text: The event description text.
+        tp: A TimePoint parsed from the --at expression.
+
+    Returns:
+        The newly created Event.
+
+    Raises:
+        ValueError: If the TimePoint fails business validation.
+    """
+    id_ = next_id(items)
+    event = Event.create(id_=id_, text=text, tp=tp)
+    items.append(event)
+    return event
+
+
+def add_note(items: list[Event | Note], text: str, tp: TimePoint) -> Note:
+    """Create a Note, allocate next ID, and append to items.
+
+    Args:
+        items: Mutable list of timeline items (modified in place).
+        text: The note text.
+        tp: A TimePoint parsed from the --at expression.
+
+    Returns:
+        The newly created Note.
+
+    Raises:
+        ValueError: If the TimePoint fails business validation.
+    """
+    id_ = next_id(items)
+    note = Note.create(id_=id_, text=text, tp=tp)
+    items.append(note)
+    return note
+
+
+# ---------------------------------------------------------------------------
+# Edit helpers
+# ---------------------------------------------------------------------------
+
+
+def edit_event(
+    items: list[Event | Note],
+    id_: int,
+    new_text: str | None = None,
+    new_tp: TimePoint | None = None,
+) -> tuple[Event, Event]:
+    """Edit an event by replacing it with updated values.
+
+    Args:
+        items: Mutable list of timeline items (modified in place).
+        id_: The event id to edit.
+        new_text: New text, or None to keep the old text.
+        new_tp: New TimePoint, or None to keep the old date and time.
+
+    Returns:
+        A tuple of (new_event, old_event).
+
+    Raises:
+        TimelineValidationError: If the event is not found.
+        ValueError: If new_tp fails business validation.
+    """
+    idx = _find_index(items, "event", id_)
+    old = items[idx]
+    if not isinstance(old, Event):
+        raise TimelineValidationError(f"Expected event, got {type(old).__name__}")
+
+    if new_tp is not None:
+        validate_event_timepoint(new_tp)
+        new_date = new_tp.date.isoformat()
+        new_time = new_tp.time.strftime("%H:%M") if new_tp.time else old.time
+    else:
+        new_date = old.date
+        new_time = old.time
+
+    new_text_val = new_text if new_text is not None else old.text
+
+    new_event = Event(id=id_, date=new_date, time=new_time, text=new_text_val)
+    items[idx] = new_event
+    return new_event, old
+
+
+def edit_note(
+    items: list[Event | Note],
+    id_: int,
+    new_text: str | None = None,
+    new_tp: TimePoint | None = None,
+) -> tuple[Note, Note]:
+    """Edit a note by replacing it with updated values.
+
+    Args:
+        items: Mutable list of timeline items (modified in place).
+        id_: The note id to edit.
+        new_text: New text, or None to keep the old text.
+        new_tp: New TimePoint, or None to keep the old date.
+
+    Returns:
+        A tuple of (new_note, old_note).
+
+    Raises:
+        TimelineValidationError: If the note is not found.
+        TimelineValidationError: If new_tp fails business validation.
+    """
+    idx = _find_index(items, "note", id_)
+    old = items[idx]
+    if not isinstance(old, Note):
+        raise TimelineValidationError(f"Expected note, got {type(old).__name__}")
+
+    if new_tp is not None:
+        validate_note_timepoint(new_tp)
+        new_date = new_tp.date.isoformat()
+    else:
+        new_date = old.date
+
+    new_text_val = new_text if new_text is not None else old.text
+
+    new_note = Note(id=id_, date=new_date, text=new_text_val)
+    items[idx] = new_note
+    return new_note, old
+
+
+# ---------------------------------------------------------------------------
+# Delete helper
+# ---------------------------------------------------------------------------
+
+
+def delete_item(items: list[Event | Note], type_: str, id_: int) -> Event | Note:
+    """Find and remove an item by type and id.
+
+    Args:
+        items: Mutable list of timeline items (modified in place).
+        type_: ``"event"`` or ``"note"``.
+        id_: The item id to delete.
+
+    Returns:
+        The removed item.
+
+    Raises:
+        TimelineValidationError: If no matching item is found.
+    """
+    idx = _find_index(items, type_, id_)
+    return items.pop(idx)
+
+
+# ---------------------------------------------------------------------------
+# Filter helpers
+# ---------------------------------------------------------------------------
+
+
+def filter_by_date(items: Sequence[Event | Note], date_range: DateRange) -> list[Event | Note]:
+    """Filter items to those whose date falls within the DateRange.
+
+    Args:
+        items: List of timeline items.
+        date_range: A DateRange parsed from the --range expression.
+
+    Returns:
+        Items whose date is within the range (inclusive).
+    """
+    result: list[Event | Note] = []
+    for item in items:
+        item_date = item.date
+        if date_range.start is not None and item_date < date_range.start.isoformat():
+            continue
+        if date_range.end is not None and item_date > date_range.end.isoformat():
+            continue
+        result.append(item)
+    return result
+
+
+def filter_by_text(items: Sequence[Event | Note], text: str) -> list[Event | Note]:
+    """Filter items whose text contains the given substring (case-sensitive).
+
+    Args:
+        items: List of timeline items.
+        text: Substring to search for.
+
+    Returns:
+        Items where text contains the substring.
+    """
+    return [item for item in items if text in item.text]
