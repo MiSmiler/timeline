@@ -48,6 +48,108 @@ class TestBuildParser:
         assert exc_info.value.code == 2
 
 
+class TestBuildParserEvent:
+    """Parser tests for 'event' subcommands."""
+
+    def test_event_add_requires_at(self) -> None:
+        """event add requires --at."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "add", "my text", "--at", "now"])
+        assert args.resource == "event"
+        assert args.action == "add"
+        assert args.text == "my text"
+        assert args.at == "now"
+
+    def test_event_add_missing_at_exits(self) -> None:
+        """event add exits when --at is missing."""
+        parser = _build_parser()
+        with pytest.raises(SystemExit):
+            parser.parse_args(["event", "add", "my text"])
+
+    def test_event_list_parses_filters(self) -> None:
+        """event list accepts --range and --with-text."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "list", "--range", "today", "--with-text", "bug"])
+        assert args.action == "list"
+        assert args.range_ == "today"
+        assert args.with_text == "bug"
+
+    def test_event_list_json_flag(self) -> None:
+        """event list --json sets json_output."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "list", "--range", "..", "--json"])
+        assert args.json_output is True
+
+    def test_event_edit_parses_both_flags(self) -> None:
+        """event edit accepts --new-text and --new-at."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "edit", "e1", "--new-text", "updated", "--new-at", "todayT14:00"])
+        assert args.action == "edit"
+        assert args.id == "e1"
+        assert args.new_text == "updated"
+        assert args.new_at == "todayT14:00"
+
+    def test_event_edit_no_flags_parses(self) -> None:
+        """event edit without flags parses OK (validation happens in handler)."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "edit", "e1"])
+        assert args.new_text is None
+        assert args.new_at is None
+
+    def test_event_delete_parses_yes_flag(self) -> None:
+        """event delete --yes sets the flag."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "delete", "e1", "--yes"])
+        assert args.action == "delete"
+        assert args.id == "e1"
+        assert args.yes is True
+
+    def test_event_delete_defaults_no_yes(self) -> None:
+        """event delete without --yes defaults to False."""
+        parser = _build_parser()
+        args = parser.parse_args(["event", "delete", "e1"])
+        assert args.yes is False
+
+    def test_event_without_action_sets_action_none(self) -> None:
+        """event without an action sets action=None (dispatch will raise)."""
+        parser = _build_parser()
+        args = parser.parse_args(["event"])
+        assert args.resource == "event"
+        assert args.action is None
+
+
+class TestBuildParserNote:
+    """Parser tests for 'note' subcommands."""
+
+    def test_note_add_requires_at(self) -> None:
+        """note add requires --at."""
+        parser = _build_parser()
+        args = parser.parse_args(["note", "add", "my note", "--at", "today"])
+        assert args.resource == "note"
+        assert args.action == "add"
+        assert args.text == "my note"
+        assert args.at == "today"
+
+    def test_note_list_parses_filters(self) -> None:
+        """note list accepts --range and --with-text."""
+        parser = _build_parser()
+        args = parser.parse_args(["note", "list", "--range", "2026-06-25..2026-06-30"])
+        assert args.range_ == "2026-06-25..2026-06-30"
+
+    def test_note_edit_parses_flags(self) -> None:
+        """note edit accepts --new-text and --new-at."""
+        parser = _build_parser()
+        args = parser.parse_args(["note", "edit", "n2", "--new-text", "changed"])
+        assert args.id == "n2"
+        assert args.new_text == "changed"
+
+    def test_note_delete_parses_yes_flag(self) -> None:
+        """note delete --yes sets the flag."""
+        parser = _build_parser()
+        args = parser.parse_args(["note", "delete", "n1", "--yes"])
+        assert args.yes is True
+
+
 class TestMain:
     """Tests for main()."""
 
@@ -94,11 +196,11 @@ class TestDispatch:
     def test_unknown_resource_raises_validation_error(self) -> None:
         """_dispatch with an unknown resource raises TimelineValidationError."""
         args = argparse.Namespace(resource="unknown", action=None)
-        with pytest.raises(TimelineValidationError, match="Command not implemented yet"):
+        with pytest.raises(TimelineValidationError, match="Unknown resource"):
             _dispatch(args)
 
-    def test_unknown_resource_with_action_includes_action_in_message(self) -> None:
-        """_dispatch includes the action name in the error message if present."""
-        args = argparse.Namespace(resource="event", action="add")
-        with pytest.raises(TimelineValidationError, match="event add"):
+    def test_unknown_action_raises_validation_error(self) -> None:
+        """_dispatch with a known resource but unknown action raises TimelineValidationError."""
+        args = argparse.Namespace(resource="event", action="unknown_action")
+        with pytest.raises(TimelineValidationError, match="Command not implemented yet"):
             _dispatch(args)

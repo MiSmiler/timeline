@@ -36,13 +36,9 @@ def _parse_date_string(s: str) -> date:
     try:
         return date.fromisoformat(s)
     except ValueError as e:
-        raise TimelineValidationError(
-            f"Invalid date expression: {s!r}: {e}"
-        ) from None
+        raise TimelineValidationError(f"Invalid date expression: {s!r}: {e}") from None
     except TypeError:
-        raise TimelineInternalError(
-            "Internal error: unexpected type in date parser"
-        ) from None
+        raise TimelineInternalError("Internal error: unexpected type in date parser") from None
 
 
 def _parse_time(s: str) -> time:
@@ -61,13 +57,9 @@ def _parse_time(s: str) -> time:
     try:
         return time.fromisoformat(s)
     except ValueError as e:
-        raise TimelineValidationError(
-            f"Invalid time: {e}. Expected HH:MM (e.g., 14:00)."
-        ) from None
+        raise TimelineValidationError(f"Invalid time: {e}. Expected HH:MM (e.g., 14:00).") from None
     except TypeError:
-        raise TimelineInternalError(
-            "Internal error: unexpected type in time parser"
-        ) from None
+        raise TimelineInternalError("Internal error: unexpected type in time parser") from None
 
 
 @dataclass(frozen=True)
@@ -184,8 +176,6 @@ class DateRange:
             end = parsed
 
         if start is not None and end is not None and start > end:
-            raise TimelineValidationError(
-                f"Invalid date range: start {start} is after end {end}."
-            )
+            raise TimelineValidationError(f"Invalid date range: start {start} is after end {end}.")
 
         return cls(start=start, end=end)
